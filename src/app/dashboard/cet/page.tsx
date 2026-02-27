@@ -156,45 +156,45 @@ export default function CETCalculatorPage() {
 <style>
 @page{size:landscape;margin:6mm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;font-size:9px;color:#333;padding:8px}
+body{font-family:Arial,sans-serif;font-size:12px;color:#333;padding:10px}
 .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #00a868;padding-bottom:5px;margin-bottom:6px}
 .header-center{flex:1;text-align:center}
-.header h1{font-size:14px;color:#00a868;margin:0;font-weight:bold}
+.header h1{font-size:18px;color:#00a868;margin:0;font-weight:bold}
 .badges{margin-top:2px}
-.promo-badge,.fidelidade-badge{display:inline-block;font-size:7px;padding:1px 5px;border-radius:3px;margin:0 2px}
+.promo-badge,.fidelidade-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px;margin:0 2px}
 .promo-badge{background:#fff3cd;color:#856404;border:1px solid #ffc107}
 .fidelidade-badge{background:#e3f2fd;color:#1565c0;border:1px solid #42a5f5}
 .logo{display:flex;align-items:center;gap:3px;flex-shrink:0}
 .logo .dot{width:14px;height:14px;background:#00a868;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:bold}
 .logo span{font-size:11px;font-weight:bold;color:#00a868}
 .main{display:flex;gap:8px}
-.left{width:140px;flex-shrink:0}
+.left{width:200px;flex-shrink:0}
 .right{flex:1;min-width:0}
 .card{border:1px solid #e0e0e0;border-radius:4px;padding:4px;margin-bottom:4px}
-.card h3{font-size:7px;font-weight:bold;text-transform:uppercase;color:#00a868;margin-bottom:3px;letter-spacing:0.3px}
-.card-row{display:flex;justify-content:space-between;font-size:7px;padding:1px 0;border-bottom:1px solid #f5f5f5}
+.card h3{font-size:10px;font-weight:bold;text-transform:uppercase;color:#00a868;margin-bottom:3px;letter-spacing:0.3px}
+.card-row{display:flex;justify-content:space-between;font-size:9px;padding:2px 0;border-bottom:1px solid #f5f5f5}
 .card-row:last-child{border-bottom:none}
 .card-row .label{color:#888}.card-row .val{font-weight:bold;color:#333}
-.cet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0}
+.cet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0}
 .brand-block{page-break-inside:avoid;border-right:1px solid #ccc;padding-right:3px;padding-left:3px}
 .brand-header{display:flex;justify-content:space-between;align-items:center;padding:1px 3px;background:linear-gradient(90deg,#e8f5e9,#fff);border-radius:3px 3px 0 0;border:1px solid #c8e6c9;border-bottom:none}
-.brand-header h4{font-size:7px;font-weight:bold;color:#2e7d32;margin:0}
-.brand-header .deb{font-size:7px;color:#666}
+.brand-header h4{font-size:10px;font-weight:bold;color:#2e7d32;margin:0}
+.brand-header .deb{font-size:8px;color:#666}
 .brand-header .deb b{color:#333}
-table{width:100%;border-collapse:collapse;font-size:7px;line-height:1.2}
-th{padding:1px 2px;font-weight:600;color:#555;font-size:6px;border-bottom:1px solid #ddd}
-td{padding:1px 2px;border-bottom:1px solid #f0f0f0}
+table{width:100%;border-collapse:collapse;font-size:9px;line-height:1.3}
+th{padding:2px 4px;font-weight:600;color:#555;font-size:8px;border-bottom:1px solid #ddd}
+td{padding:2px 4px;border-bottom:1px solid #f0f0f0}
 .mdr-row td{color:#555}
 .cet-row td{font-weight:bold}
 .green{color:#059669}.amber{color:#d97706}.red{color:#dc2626}
-.pix-line{font-size:6px;color:#888;padding:1px 4px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 3px 3px;background:#fafafa}
-.footer{font-size:6px;color:#aaa;margin-top:4px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
+.pix-line{font-size:8px;color:#888;padding:1px 4px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 3px 3px;background:#fafafa}
+.footer{font-size:9px;color:#aaa;margin-top:4px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
 </style></head><body>`;
 
         // Header
         html += `<div class="header"><div class="header-center"><h1>PROPOSTA STONE${clientName ? " \u2014 " + clientName.toUpperCase() : ""}</h1><div class="badges">`;
         if (proposalType !== "custom") html += `<span class="promo-badge">${promoInfo?.label}</span>`;
-        if (fidelidade) html += `<span class="fidelidade-badge">FIDELIDADE 13 MESES (1\u00ba isento + 12)</span>`;
+        if (fidelidade) html += `<span class="fidelidade-badge">FIDELIDADE 13 MESES (1\u00ba m\u00eas isento + 12 Meses)</span>`;
         html += `</div></div></div>`;
 
         html += `<div class="main">`;
@@ -366,7 +366,7 @@ td{padding:1px 2px;border-bottom:1px solid #f0f0f0}
                                 <span className="text-[10px] text-foreground font-medium">Termo de Fidelidade</span>
                             </label>
                             {fidelidade && (
-                                <p className="text-[9px] text-blue-400 bg-blue-500/10 rounded-md px-2 py-1 mt-1.5">1º mês isento + 12 meses = 13 meses total</p>
+                                <p className="text-[9px] text-blue-400 bg-blue-500/10 rounded-md px-2 py-1 mt-1.5">1º mês isento + 12 Meses = 13 Meses total</p>
                             )}
                         </div>
                     </div>
