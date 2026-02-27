@@ -156,7 +156,7 @@ export default function CETCalculatorPage() {
 <style>
 @page{size:landscape;margin:6mm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;font-size:14px;color:#333;padding:10px}
+body{font-family:Arial,sans-serif;font-size:11px;color:#333;padding:10px}
 .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #00a868;padding-bottom:5px;margin-bottom:6px}
 .header-center{flex:1;text-align:center}
 .header h1{font-size:22px;color:#00a868;margin:0;font-weight:bold}
@@ -168,11 +168,11 @@ body{font-family:Arial,sans-serif;font-size:14px;color:#333;padding:10px}
 .logo .dot{width:14px;height:14px;background:#00a868;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:bold}
 .logo span{font-size:11px;font-weight:bold;color:#00a868}
 .main{display:flex;gap:8px}
-.left{width:220px;flex-shrink:0}
+.left{width:180px;flex-shrink:0}
 .right{flex:1;min-width:0}
 .card{border:1px solid #e0e0e0;border-radius:4px;padding:4px;margin-bottom:4px}
-.card h3{font-size:13px;font-weight:bold;text-transform:uppercase;color:#00a868;margin-bottom:3px;letter-spacing:0.3px}
-.card-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f5f5f5}
+.card h3{font-size:9px;font-weight:bold;text-transform:uppercase;color:#00a868;margin-bottom:3px;letter-spacing:0.3px}
+.card-row{display:flex;justify-content:space-between;font-size:9px;padding:1px 0;border-bottom:1px solid #f5f5f5}
 .card-row:last-child{border-bottom:none}
 .card-row .label{color:#888}.card-row .val{font-weight:bold;color:#333}
 .cet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0}
@@ -188,7 +188,7 @@ td{padding:1px 3px;border-bottom:1px solid #f0f0f0}
 .cet-row td{font-weight:bold}
 .green{color:#059669}.amber{color:#d97706}.red{color:#dc2626}
 .pix-line{font-size:9px;color:#888;padding:1px 4px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 3px 3px;background:#fafafa}
-.footer{font-size:10px;color:#aaa;margin-top:4px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
+.footer{font-size:8px;color:#aaa;margin-top:4px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
 </style></head><body>`;
 
         // Header
