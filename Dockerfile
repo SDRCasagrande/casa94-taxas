@@ -46,7 +46,7 @@ COPY --from=builder /app/package.json ./package.json
 # Create data directory for SQLite
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
-# Entrypoint: fix permissions, init DB, then start
+# Entrypoint: always sync schema + seed, then start
 COPY <<'EOF' /app/entrypoint.sh
 #!/bin/sh
 set -e
@@ -57,19 +57,15 @@ chown -R nextjs:nodejs /app/data
 # Run Prisma via node directly (npx not available in standalone)
 PRISMA="node /app/node_modules/prisma/build/index.js"
 
-# Initialize database if it doesn't exist
-if [ ! -f /app/data/prod.db ]; then
-  echo "==> Initializing database..."
-  su-exec nextjs:nodejs $PRISMA db push --skip-generate
-  echo "==> Seeding users..."
-  su-exec nextjs:nodejs node /app/prisma/seed.js
-  echo "==> Database ready!"
-else
-  echo "==> Database exists, syncing schema..."
-  su-exec nextjs:nodejs $PRISMA db push --skip-generate --accept-data-loss 2>/dev/null || true
-fi
+# Always push schema (creates tables if missing, safe to run multiple times)
+echo "==> Syncing database schema..."
+su-exec nextjs:nodejs $PRISMA db push --skip-generate --accept-data-loss 2>&1 || echo "Schema sync warning (non-fatal)"
 
-# Start the server
+# Always run seed (uses upsert, safe to run multiple times)
+echo "==> Ensuring seed data..."
+su-exec nextjs:nodejs node /app/prisma/seed.js 2>&1 || echo "Seed warning (non-fatal)"
+
+echo "==> Starting server..."
 exec su-exec nextjs:nodejs node server.js
 EOF
 RUN chmod +x /app/entrypoint.sh
