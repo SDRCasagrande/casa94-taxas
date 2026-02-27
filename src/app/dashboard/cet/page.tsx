@@ -204,7 +204,7 @@ td{padding:1px 3px;border:1px solid #eee}
         html += `<div class="card"><h3>Taxas por Bandeira</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">`;
         ACTIVE_BRANDS.forEach(name => {
             const r = brandRates[name];
-            html += `<div style="margin-bottom:2px"><div style="font-size:7px;font-weight:bold;color:#2e7d32">${name}</div>`;
+            html += `<div style="margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid #ddd"><div style="font-size:7px;font-weight:bold;color:#2e7d32">${name}</div>`;
             html += `<div class="card-row"><span class="label">D\u00e9b</span><span class="val">${formatPercent(r.debit)}</span></div>`;
             html += `<div class="card-row"><span class="label">1x</span><span class="val">${formatPercent(r.credit1x)}</span></div>`;
             html += `<div class="card-row"><span class="label">2-6x</span><span class="val">${formatPercent(r.credit2to6)}</span></div>`;
