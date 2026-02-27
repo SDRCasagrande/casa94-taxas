@@ -8,6 +8,8 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [forgotMode, setForgotMode] = useState(false);
+    const [forgotMsg, setForgotMsg] = useState("");
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent) {
@@ -27,6 +29,30 @@ export default function LoginPage() {
                 return;
             }
             router.push("/dashboard");
+        } catch {
+            setError("Erro de conexão");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleForgot(e: React.FormEvent) {
+        e.preventDefault();
+        setForgotMsg("");
+        setError("");
+        setLoading(true);
+        try {
+            const res = await fetch("/api/auth/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setForgotMsg(data.message || "Se o email existir, uma nova senha será enviada.");
+            } else {
+                setError(data.error || "Erro ao solicitar recuperação");
+            }
         } catch {
             setError("Erro de conexão");
         } finally {
@@ -55,63 +81,107 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                {/* Login Card */}
+                {/* Login / Forgot Password Card */}
                 <div className="glass-card rounded-2xl p-8">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">
-                                E-mail
-                            </label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="seu@email.com"
-                                required
-                                className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">
-                                Senha
-                            </label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
-                                className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
-                            />
-                        </div>
-
-                        {error && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center">
-                                {error}
+                    {forgotMode ? (
+                        /* Forgot Password Form */
+                        <form onSubmit={handleForgot} className="space-y-5">
+                            <div className="text-center mb-2">
+                                <p className="text-lg font-semibold text-foreground">🔒 Esqueceu a senha?</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Digite seu email de acesso e enviaremos uma nova senha temporária.
+                                </p>
                             </div>
-                        )}
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-1.5">E-mail</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="seu@email.com"
+                                    required
+                                    className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                />
+                            </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-base
-                hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98]
-                disabled:opacity-60 disabled:cursor-not-allowed
-                transition-all duration-200 shadow-lg glow-green-subtle"
-                        >
-                            {loading ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Entrando...
-                                </span>
-                            ) : (
-                                "Entrar"
+                            {error && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center">
+                                    {error}
+                                </div>
                             )}
-                        </button>
-                    </form>
+
+                            {forgotMsg && (
+                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm text-center">
+                                    ✅ {forgotMsg}
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading}
+                                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold
+                                    hover:from-blue-500 hover:to-blue-400 active:scale-[0.98] disabled:opacity-60
+                                    transition-all duration-200 shadow-lg">
+                                {loading ? "Enviando..." : "📧 Enviar Nova Senha"}
+                            </button>
+
+                            <button type="button" onClick={() => { setForgotMode(false); setForgotMsg(""); setError(""); }}
+                                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                ← Voltar ao login
+                            </button>
+                        </form>
+                    ) : (
+                        /* Login Form */
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-1.5">E-mail</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="seu@email.com"
+                                    required
+                                    className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-1.5">Senha</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                                />
+                            </div>
+
+                            {error && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading}
+                                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-base
+                                    hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98]
+                                    disabled:opacity-60 disabled:cursor-not-allowed
+                                    transition-all duration-200 shadow-lg glow-green-subtle">
+                                {loading ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Entrando...
+                                    </span>
+                                ) : "Entrar"}
+                            </button>
+
+                            <button type="button" onClick={() => { setForgotMode(true); setError(""); }}
+                                className="w-full text-sm text-muted-foreground hover:text-blue-400 transition-colors">
+                                Esqueceu a senha?
+                            </button>
+                        </form>
+                    )}
                 </div>
 
                 {/* Footer */}

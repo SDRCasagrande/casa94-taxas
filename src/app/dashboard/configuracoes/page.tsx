@@ -8,6 +8,7 @@ export default function ConfiguracoesPage() {
         email: string;
         notificationEmail: string;
     } | null>(null);
+    const [loginEmail, setLoginEmail] = useState("");
     const [notifEmail, setNotifEmail] = useState("");
     const [currentPw, setCurrentPw] = useState("");
     const [newPw, setNewPw] = useState("");
@@ -21,24 +22,25 @@ export default function ConfiguracoesPage() {
             .then((r) => r.json())
             .then((d) => {
                 setProfile(d);
+                setLoginEmail(d.email || "");
                 setNotifEmail(d.notificationEmail || "");
             })
             .finally(() => setLoading(false));
     }, []);
 
-    const saveEmail = async () => {
+    const saveEmails = async () => {
         setSaving(true);
         setMsg(null);
         try {
             const res = await fetch("/api/user/profile", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ notificationEmail: notifEmail }),
+                body: JSON.stringify({ email: loginEmail, notificationEmail: notifEmail }),
             });
             const data = await res.json();
             if (res.ok) {
                 setProfile(data);
-                setMsg({ type: "ok", text: "Email de notificação atualizado!" });
+                setMsg({ type: "ok", text: "Dados atualizados com sucesso!" });
             } else {
                 setMsg({ type: "err", text: data.error || "Erro ao salvar" });
             }
@@ -99,33 +101,43 @@ export default function ConfiguracoesPage() {
                         <label className="block text-sm text-gray-400 mb-1">Nome</label>
                         <div className="px-4 py-2.5 bg-gray-700/50 rounded-xl text-gray-300">{profile.name}</div>
                     </div>
-                    <div>
-                        <label className="block text-sm text-gray-400 mb-1">Email de login</label>
-                        <div className="px-4 py-2.5 bg-gray-700/50 rounded-xl text-gray-300">{profile.email}</div>
-                    </div>
                 </div>
             </div>
 
-            {/* Notification Email */}
+            {/* Email Settings */}
             <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 mb-6">
-                <h2 className="text-lg font-semibold mb-2">📧 Email de Notificação</h2>
+                <h2 className="text-lg font-semibold mb-2">📧 Emails</h2>
                 <p className="text-sm text-gray-400 mb-4">
-                    Receba alertas de renegociação neste email. Se vazio, será usado o email de login.
+                    O email de acesso é usado para login e para receber a senha recuperada.
+                    O email de notificação (opcional) recebe os alertas de renegociação — se vazio, usa o de acesso.
                 </p>
-                <div className="flex gap-3">
-                    <input
-                        type="email"
-                        value={notifEmail}
-                        onChange={(e) => setNotifEmail(e.target.value)}
-                        placeholder="seu-email@empresa.com"
-                        className="flex-1 px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50"
-                    />
+                <div className="space-y-3">
+                    <div>
+                        <label className="block text-xs text-gray-400 mb-1">Email de acesso (login)</label>
+                        <input
+                            type="email"
+                            value={loginEmail}
+                            onChange={(e) => setLoginEmail(e.target.value)}
+                            placeholder="seu-email@empresa.com"
+                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-400 mb-1">Email de notificação (opcional — deixe vazio para usar o de acesso)</label>
+                        <input
+                            type="email"
+                            value={notifEmail}
+                            onChange={(e) => setNotifEmail(e.target.value)}
+                            placeholder="outro-email@gmail.com (opcional)"
+                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50"
+                        />
+                    </div>
                     <button
-                        onClick={saveEmail}
+                        onClick={saveEmails}
                         disabled={saving}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                        className="w-full px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                     >
-                        {saving ? "..." : "Salvar"}
+                        {saving ? "Salvando..." : "💾 Salvar Emails"}
                     </button>
                 </div>
             </div>
@@ -136,37 +148,22 @@ export default function ConfiguracoesPage() {
                 <div className="space-y-3">
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Senha atual</label>
-                        <input
-                            type="password"
-                            value={currentPw}
-                            onChange={(e) => setCurrentPw(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50"
-                        />
+                        <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50" />
                     </div>
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Nova senha</label>
-                        <input
-                            type="password"
-                            value={newPw}
-                            onChange={(e) => setNewPw(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50"
-                        />
+                        <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50" />
                     </div>
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Confirmar nova senha</label>
-                        <input
-                            type="password"
-                            value={confirmPw}
-                            onChange={(e) => setConfirmPw(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50"
-                        />
+                        <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white focus:outline-none focus:border-emerald-500/50" />
                     </div>
-                    <button
-                        onClick={savePassword}
-                        disabled={saving || !currentPw || !newPw}
-                        className="w-full px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50 mt-2"
-                    >
-                        {saving ? "Alterando..." : "Alterar Senha"}
+                    <button onClick={savePassword} disabled={saving || !currentPw || !newPw}
+                        className="w-full px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50 mt-2">
+                        {saving ? "Alterando..." : "🔒 Alterar Senha"}
                     </button>
                 </div>
             </div>

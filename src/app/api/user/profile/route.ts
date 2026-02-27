@@ -22,14 +22,14 @@ export async function GET() {
     }
 }
 
-// PUT update user profile (notificationEmail, password)
+// PUT update user profile (email, notificationEmail, password)
 export async function PUT(request: Request) {
     try {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await request.json();
-        const { notificationEmail, currentPassword, newPassword } = body;
+        const { email, notificationEmail, currentPassword, newPassword } = body;
 
         const user = await prisma.user.findUnique({ where: { id: session.userId } });
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -37,7 +37,17 @@ export async function PUT(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
 
-        // Update notification email
+        // Update login email
+        if (email !== undefined && email.trim() !== user.email) {
+            const trimmed = email.trim().toLowerCase();
+            const existing = await prisma.user.findUnique({ where: { email: trimmed } });
+            if (existing && existing.id !== user.id) {
+                return NextResponse.json({ error: 'Email já está em uso' }, { status: 409 });
+            }
+            updateData.email = trimmed;
+        }
+
+        // Update notification email (optional override)
         if (notificationEmail !== undefined) {
             updateData.notificationEmail = notificationEmail.trim();
         }
