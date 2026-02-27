@@ -181,9 +181,9 @@ body{font-family:Arial,sans-serif;font-size:9px;color:#333;padding:8px}
 .brand-header h4{font-size:8px;font-weight:bold;color:#2e7d32;margin:0}
 .brand-header .deb{font-size:7px;color:#666}
 .brand-header .deb b{color:#333}
-table{width:100%;border-collapse:collapse;border:1px solid #e0e0e0;font-size:6.5px}
-th{background:#f8f8f8;padding:1.5px 0.5px;border:1px solid #e0e0e0;font-weight:600;color:#555}
-td{padding:1.5px 0.5px;border:1px solid #eee;text-align:center}
+table{width:100%;border-collapse:collapse;border:1px solid #e0e0e0;font-size:6px}
+th{background:#f8f8f8;padding:1px 3px;border:1px solid #e0e0e0;font-weight:600;color:#555;font-size:5.5px}
+td{padding:1px 3px;border:1px solid #eee}
 .mdr-row td{color:#555}
 .cet-row td{font-weight:bold}
 .green{color:#059669}.amber{color:#d97706}.red{color:#dc2626}
