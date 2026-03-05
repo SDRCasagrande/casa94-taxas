@@ -50,6 +50,178 @@ function fmtDate(d: string) { if (!d) return "—"; try { return new Date(d + "T
 
 type View = "list" | "detail" | "new";
 
+/* ═══ Sub-components — MUST be outside page to prevent React remount / focus loss ═══ */
+
+function RatesForm({ rates, set }: { rates: RateSnapshot; set: (r: RateSnapshot) => void }) {
+    const [activeBrand, setActiveBrand] = useState("VISA/MASTER");
+    const br = rates.brandRates || defaultBrandRates();
+    const currentBrand = br[activeBrand] || { debit: rates.debit, credit1x: rates.credit1x, credit2to6: rates.credit2to6, credit7to12: rates.credit7to12 };
+
+    function updateBrand(field: string, val: number) {
+        const newBr = { ...br, [activeBrand]: { ...currentBrand, [field]: val } };
+        const visa = newBr["VISA/MASTER"] || currentBrand;
+        set({ ...rates, brandRates: newBr, debit: visa.debit, credit1x: visa.credit1x, credit2to6: visa.credit2to6, credit7to12: visa.credit7to12 });
+    }
+
+    const [newBrandInput, setNewBrandInput] = useState("");
+    const [showNewBrand, setShowNewBrand] = useState(false);
+
+    function addBrand(name: string) {
+        if (name && !br[name]) {
+            const newBr = { ...br, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0 } };
+            set({ ...rates, brandRates: newBr });
+            setActiveBrand(name);
+        }
+    }
+
+    function removeBrand(b: string) {
+        const newBr = { ...br }; delete newBr[b];
+        set({ ...rates, brandRates: newBr });
+        if (activeBrand === b) setActiveBrand(Object.keys(newBr)[0]);
+    }
+
+    const brandList = Object.keys(br);
+
+    return (
+        <div className="space-y-2">
+            {/* Brand tabs */}
+            <div className="flex gap-0.5 flex-wrap items-center">
+                {brandList.map((b) => (
+                    <div key={b} className="relative group">
+                        <button type="button" onClick={() => setActiveBrand(b)}
+                            className={`px-1.5 py-0.5 text-[8px] rounded font-semibold transition-all ${activeBrand === b ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40" : "bg-secondary text-muted-foreground hover:bg-muted"
+                                }`}>
+                            {b}
+                        </button>
+                        {!BRAND_PRESETS[b] && (
+                            <button type="button" onClick={() => removeBrand(b)}
+                                className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 text-white rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center">x</button>
+                        )}
+                    </div>
+                ))}
+                {showNewBrand ? (
+                    <div className="flex items-center gap-0.5">
+                        <input type="text" value={newBrandInput} autoFocus
+                            onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && newBrandInput.trim()) { addBrand(newBrandInput.trim()); setNewBrandInput(""); setShowNewBrand(false); }
+                                if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
+                            }}
+                            placeholder="NOME"
+                            className="w-20 px-1 py-0.5 text-[8px] rounded bg-secondary border border-emerald-500/40 text-foreground focus:ring-1 focus:ring-emerald-500" />
+                        <button type="button" onClick={() => { addBrand(newBrandInput.trim()); setNewBrandInput(""); setShowNewBrand(false); }}
+                            className="text-[8px] text-emerald-400">OK</button>
+                        <button type="button" onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }}
+                            className="text-[8px] text-red-400">X</button>
+                    </div>
+                ) : (
+                    <button type="button" onClick={() => setShowNewBrand(true)}
+                        className="px-1.5 py-0.5 text-[8px] rounded font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20">+</button>
+                )}
+            </div>
+            {/* Brand rates */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                <RI l="Debito" v={currentBrand.debit} set={(v) => updateBrand("debit", v)} />
+                <RI l="Cred 1x" v={currentBrand.credit1x} set={(v) => updateBrand("credit1x", v)} />
+                <RI l="2-6x" v={currentBrand.credit2to6} set={(v) => updateBrand("credit2to6", v)} />
+                <RI l="7-12x" v={currentBrand.credit7to12} set={(v) => updateBrand("credit7to12", v)} />
+            </div>
+            {/* PIX + RAV section */}
+            <div className="pt-2 border-t border-border space-y-1.5">
+                <h4 className="text-[9px] font-bold text-muted-foreground uppercase">PIX & RAV</h4>
+                <div className="grid grid-cols-2 gap-1.5">
+                    <RI l="PIX" v={rates.pix} set={(v) => set({ ...rates, pix: v })} />
+                    <div>
+                        <label className="text-[9px] text-muted-foreground uppercase block mb-px">Tipo RAV</label>
+                        <select value={rates.ravTipo || "automatico"} onChange={(e) => set({ ...rates, ravTipo: e.target.value as "automatico" | "pontual" })}
+                            className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-emerald-500">
+                            <option value="automatico">Automatico</option>
+                            <option value="pontual">Pontual (sem CET)</option>
+                        </select>
+                    </div>
+                </div>
+                {(rates.ravTipo || "automatico") === "automatico" && (
+                    <div className="grid grid-cols-3 gap-1.5">
+                        <RI l="RAV Auto" v={rates.ravRate ?? rates.rav} set={(v) => set({ ...rates, ravRate: v, rav: v })} />
+                        <RI l="RAV Pontual" v={rates.ravPontual ?? 3.79} set={(v) => set({ ...rates, ravPontual: v })} />
+                        <div>
+                            <label className="text-[9px] text-muted-foreground uppercase block mb-px">Recebimento</label>
+                            <select value={rates.ravTiming || "md"} onChange={(e) => set({ ...rates, ravTiming: e.target.value as "md" | "ds" | "du" })}
+                                className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-emerald-500">
+                                <option value="md">Mesmo Dia</option>
+                                <option value="ds">Dia Seguinte</option>
+                                <option value="du">Dias Uteis</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+                {rates.ravTipo === "pontual" && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <RI l="RAV Auto" v={rates.ravRate ?? rates.rav} set={(v) => set({ ...rates, ravRate: v, rav: v })} />
+                        <RI l="RAV Pontual" v={rates.ravPontual ?? 3.79} set={(v) => set({ ...rates, ravPontual: v })} />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function RatesReadonly({ rates }: { rates: RateSnapshot }) {
+    const [showBrand, setShowBrand] = useState("VISA/MASTER");
+    const br = rates.brandRates;
+    const current = br?.[showBrand] || { debit: rates.debit, credit1x: rates.credit1x, credit2to6: rates.credit2to6, credit7to12: rates.credit7to12 };
+    const ravLabel = rates.ravTipo === "pontual" ? "Pontual" : `Auto ${rates.ravTiming === "ds" ? "D.Seg" : rates.ravTiming === "du" ? "D.Uteis" : "M.Dia"}`;
+
+    return (
+        <div className="space-y-1.5">
+            {br && (
+                <div className="flex gap-0.5 flex-wrap">
+                    {BRAND_NAMES.filter(b => br[b]).map((b) => (
+                        <button key={b} type="button" onClick={() => setShowBrand(b)}
+                            className={`px-1 py-0.5 text-[7px] rounded font-semibold ${showBrand === b ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary/50 text-muted-foreground"
+                                }`}>
+                            {b}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                {[{ l: "Deb", v: current.debit }, { l: "1x", v: current.credit1x }, { l: "2-6x", v: current.credit2to6 },
+                { l: "7-12x", v: current.credit7to12 }, { l: "PIX", v: rates.pix },
+                { l: ravLabel, v: rates.ravTipo === "pontual" ? 0 : (rates.ravRate ?? rates.rav) }].map((r) => (
+                    <div key={r.l} className="bg-secondary rounded-md p-1 text-center">
+                        <p className="text-[8px] text-muted-foreground">{r.l}</p>
+                        <p className="text-[10px] font-bold text-foreground">{formatPercent(r.v)}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function StatusBadge({ s }: { s: Negotiation["status"] }) {
+    const cls = { pendente: "bg-amber-500/10 text-amber-500 border-amber-500/30", aceita: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", recusada: "bg-red-500/10 text-red-500 border-red-500/30" };
+    const lbl = { pendente: "⏳ Pendente", aceita: "✅ Aceita", recusada: "❌ Recusada" };
+    return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cls[s]}`}>{lbl[s]}</span>;
+}
+
+function DateFields({ dn, setDN, da, setDA }: { dn: string; setDN: (s: string) => void; da: string; setDA: (s: string) => void }) {
+    return (
+        <div className="grid grid-cols-2 gap-2">
+            <div>
+                <label className="text-[9px] text-muted-foreground uppercase block mb-px">📅 Data Negociação</label>
+                <input type="date" value={dn} onChange={(e) => setDN(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-emerald-500" />
+            </div>
+            <div>
+                <label className="text-[9px] text-muted-foreground uppercase block mb-px">✅ Data Aceite</label>
+                <input type="date" value={da} onChange={(e) => setDA(e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-emerald-500" />
+            </div>
+        </div>
+    );
+}
+
 export default function NegociacoesPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [view, setView] = useState<View>("list");
@@ -227,177 +399,7 @@ export default function NegociacoesPage() {
         window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
     }
 
-    // Components — RI imported from shared component (prevents focus loss)
-
-    function RatesForm({ rates, set }: { rates: RateSnapshot; set: (r: RateSnapshot) => void }) {
-        const [activeBrand, setActiveBrand] = useState("VISA/MASTER");
-        const br = rates.brandRates || defaultBrandRates();
-        const currentBrand = br[activeBrand] || { debit: rates.debit, credit1x: rates.credit1x, credit2to6: rates.credit2to6, credit7to12: rates.credit7to12 };
-
-        function updateBrand(field: string, val: number) {
-            const newBr = { ...br, [activeBrand]: { ...currentBrand, [field]: val } };
-            const visa = newBr["VISA/MASTER"] || currentBrand;
-            set({ ...rates, brandRates: newBr, debit: visa.debit, credit1x: visa.credit1x, credit2to6: visa.credit2to6, credit7to12: visa.credit7to12 });
-        }
-
-        const [newBrandInput, setNewBrandInput] = useState("");
-        const [showNewBrand, setShowNewBrand] = useState(false);
-
-        function addBrand(name: string) {
-            if (name && !br[name]) {
-                const newBr = { ...br, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0 } };
-                set({ ...rates, brandRates: newBr });
-                setActiveBrand(name);
-            }
-        }
-
-        function removeBrand(b: string) {
-            const newBr = { ...br }; delete newBr[b];
-            set({ ...rates, brandRates: newBr });
-            if (activeBrand === b) setActiveBrand(Object.keys(newBr)[0]);
-        }
-
-        const brandList = Object.keys(br);
-
-        return (
-            <div className="space-y-2">
-                {/* Brand tabs */}
-                <div className="flex gap-0.5 flex-wrap items-center">
-                    {brandList.map((b) => (
-                        <div key={b} className="relative group">
-                            <button type="button" onClick={() => setActiveBrand(b)}
-                                className={`px-1.5 py-0.5 text-[8px] rounded font-semibold transition-all ${activeBrand === b ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40" : "bg-secondary text-muted-foreground hover:bg-muted"
-                                    }`}>
-                                {b}
-                            </button>
-                            {!BRAND_PRESETS[b] && (
-                                <button type="button" onClick={() => removeBrand(b)}
-                                    className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 text-white rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center">x</button>
-                            )}
-                        </div>
-                    ))}
-                    {showNewBrand ? (
-                        <div className="flex items-center gap-0.5">
-                            <input type="text" value={newBrandInput} autoFocus
-                                onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && newBrandInput.trim()) { addBrand(newBrandInput.trim()); setNewBrandInput(""); setShowNewBrand(false); }
-                                    if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
-                                }}
-                                placeholder="NOME"
-                                className="w-20 px-1 py-0.5 text-[8px] rounded bg-secondary border border-emerald-500/40 text-foreground focus:ring-1 focus:ring-emerald-500" />
-                            <button type="button" onClick={() => { addBrand(newBrandInput.trim()); setNewBrandInput(""); setShowNewBrand(false); }}
-                                className="text-[8px] text-emerald-400">OK</button>
-                            <button type="button" onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }}
-                                className="text-[8px] text-red-400">X</button>
-                        </div>
-                    ) : (
-                        <button type="button" onClick={() => setShowNewBrand(true)}
-                            className="px-1.5 py-0.5 text-[8px] rounded font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20">+</button>
-                    )}
-                </div>
-                {/* Brand rates */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                    <RI l="Debito" v={currentBrand.debit} set={(v) => updateBrand("debit", v)} />
-                    <RI l="Cred 1x" v={currentBrand.credit1x} set={(v) => updateBrand("credit1x", v)} />
-                    <RI l="2-6x" v={currentBrand.credit2to6} set={(v) => updateBrand("credit2to6", v)} />
-                    <RI l="7-12x" v={currentBrand.credit7to12} set={(v) => updateBrand("credit7to12", v)} />
-                </div>
-                {/* PIX + RAV section */}
-                <div className="pt-2 border-t border-border space-y-1.5">
-                    <h4 className="text-[9px] font-bold text-muted-foreground uppercase">PIX & RAV</h4>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        <RI l="PIX" v={rates.pix} set={(v) => set({ ...rates, pix: v })} />
-                        <div>
-                            <label className="text-[9px] text-muted-foreground uppercase block mb-px">Tipo RAV</label>
-                            <select value={rates.ravTipo || "automatico"} onChange={(e) => set({ ...rates, ravTipo: e.target.value as "automatico" | "pontual" })}
-                                className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-emerald-500">
-                                <option value="automatico">Automatico</option>
-                                <option value="pontual">Pontual (sem CET)</option>
-                            </select>
-                        </div>
-                    </div>
-                    {(rates.ravTipo || "automatico") === "automatico" && (
-                        <div className="grid grid-cols-3 gap-1.5">
-                            <RI l="RAV Auto" v={rates.ravRate ?? rates.rav} set={(v) => set({ ...rates, ravRate: v, rav: v })} />
-                            <RI l="RAV Pontual" v={rates.ravPontual ?? 3.79} set={(v) => set({ ...rates, ravPontual: v })} />
-                            <div>
-                                <label className="text-[9px] text-muted-foreground uppercase block mb-px">Recebimento</label>
-                                <select value={rates.ravTiming || "md"} onChange={(e) => set({ ...rates, ravTiming: e.target.value as "md" | "ds" | "du" })}
-                                    className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-emerald-500">
-                                    <option value="md">Mesmo Dia</option>
-                                    <option value="ds">Dia Seguinte</option>
-                                    <option value="du">Dias Uteis</option>
-                                </select>
-                            </div>
-                        </div>
-                    )}
-                    {rates.ravTipo === "pontual" && (
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <RI l="RAV Auto" v={rates.ravRate ?? rates.rav} set={(v) => set({ ...rates, ravRate: v, rav: v })} />
-                            <RI l="RAV Pontual" v={rates.ravPontual ?? 3.79} set={(v) => set({ ...rates, ravPontual: v })} />
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    function RatesReadonly({ rates }: { rates: RateSnapshot }) {
-        const [showBrand, setShowBrand] = useState("VISA/MASTER");
-        const br = rates.brandRates;
-        const current = br?.[showBrand] || { debit: rates.debit, credit1x: rates.credit1x, credit2to6: rates.credit2to6, credit7to12: rates.credit7to12 };
-        const ravLabel = rates.ravTipo === "pontual" ? "Pontual" : `Auto ${rates.ravTiming === "ds" ? "D.Seg" : rates.ravTiming === "du" ? "D.Uteis" : "M.Dia"}`;
-
-        return (
-            <div className="space-y-1.5">
-                {br && (
-                    <div className="flex gap-0.5 flex-wrap">
-                        {BRAND_NAMES.filter(b => br[b]).map((b) => (
-                            <button key={b} type="button" onClick={() => setShowBrand(b)}
-                                className={`px-1 py-0.5 text-[7px] rounded font-semibold ${showBrand === b ? "bg-emerald-500/20 text-emerald-400" : "bg-secondary/50 text-muted-foreground"
-                                    }`}>
-                                {b}
-                            </button>
-                        ))}
-                    </div>
-                )}
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
-                    {[{ l: "Deb", v: current.debit }, { l: "1x", v: current.credit1x }, { l: "2-6x", v: current.credit2to6 },
-                    { l: "7-12x", v: current.credit7to12 }, { l: "PIX", v: rates.pix },
-                    { l: ravLabel, v: rates.ravTipo === "pontual" ? 0 : (rates.ravRate ?? rates.rav) }].map((r) => (
-                        <div key={r.l} className="bg-secondary rounded-md p-1 text-center">
-                            <p className="text-[8px] text-muted-foreground">{r.l}</p>
-                            <p className="text-[10px] font-bold text-foreground">{formatPercent(r.v)}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    function StatusBadge({ s }: { s: Negotiation["status"] }) {
-        const cls = { pendente: "bg-amber-500/10 text-amber-500 border-amber-500/30", aceita: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", recusada: "bg-red-500/10 text-red-500 border-red-500/30" };
-        const lbl = { pendente: "⏳ Pendente", aceita: "✅ Aceita", recusada: "❌ Recusada" };
-        return <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cls[s]}`}>{lbl[s]}</span>;
-    }
-
-    function DateFields({ dn, setDN, da, setDA }: { dn: string; setDN: (s: string) => void; da: string; setDA: (s: string) => void }) {
-        return (
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <label className="text-[9px] text-muted-foreground uppercase block mb-px">📅 Data Negociação</label>
-                    <input type="date" value={dn} onChange={(e) => setDN(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-emerald-500" />
-                </div>
-                <div>
-                    <label className="text-[9px] text-muted-foreground uppercase block mb-px">✅ Data Aceite</label>
-                    <input type="date" value={da} onChange={(e) => setDA(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-emerald-500" />
-                </div>
-            </div>
-        );
-    }
+    // Components already extracted to module level to prevent focus loss
 
     if (loading) {
         return (
