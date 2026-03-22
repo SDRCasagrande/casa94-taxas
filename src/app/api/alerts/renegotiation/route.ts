@@ -6,7 +6,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const RENEGOTIATION_DAYS = 60;
 
 // GET — Called by cron or manually. Checks all accepted negotiations
-// and sends email alerts for those approaching 60-day renegotiation deadline.
+// for: 1) 60-day auto renegotiation deadlines, 2) custom alertDate reminders
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -16,6 +16,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const todayStr = new Date().toISOString().split('T')[0];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -36,9 +37,38 @@ export async function GET(request: Request) {
             },
         });
 
-        const alerts: { client: string; user: string; daysLeft: number; emailSent: boolean }[] = [];
+        const alerts: { client: string; user: string; daysLeft: number; emailSent: boolean; type: string }[] = [];
 
         for (const neg of negotiations) {
+            const user = neg.client.user;
+            const toEmail = user.notificationEmail || user.email;
+
+            // 1) Custom alertDate reminder
+            if (neg.alertDate && neg.alertDate === todayStr && !neg.alertSent) {
+                const result = await sendRenegotiationAlert(
+                    toEmail,
+                    neg.client.name,
+                    0, // "today" style
+                    user.name
+                );
+
+                // Mark as sent
+                await prisma.negotiation.update({
+                    where: { id: neg.id },
+                    data: { alertSent: true },
+                });
+
+                alerts.push({
+                    client: neg.client.name,
+                    user: user.name,
+                    daysLeft: 0,
+                    emailSent: !!result,
+                    type: 'custom_reminder',
+                });
+                continue; // Skip auto-check for this one
+            }
+
+            // 2) Auto 60-day renegotiation check
             const acceptDate = new Date(neg.dateAccept);
             if (isNaN(acceptDate.getTime())) continue;
 
@@ -51,9 +81,6 @@ export async function GET(request: Request) {
 
             // Alert 3 days before or on the day
             if (daysLeft === 3 || daysLeft === 0) {
-                const user = neg.client.user;
-                const toEmail = user.notificationEmail || user.email;
-
                 const result = await sendRenegotiationAlert(
                     toEmail,
                     neg.client.name,
@@ -66,6 +93,7 @@ export async function GET(request: Request) {
                     user: user.name,
                     daysLeft,
                     emailSent: !!result,
+                    type: 'auto_60days',
                 });
             }
         }

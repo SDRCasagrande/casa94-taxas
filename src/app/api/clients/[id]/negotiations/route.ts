@@ -22,6 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 status: body.dateAccept ? "aceita" : "pendente",
                 rates: body.rates || {},
                 notes: body.notes || "",
+                alertDate: body.alertDate || "",
             },
         });
 

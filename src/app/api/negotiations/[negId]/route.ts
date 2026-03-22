@@ -22,6 +22,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ negI
                 status: body.status ?? neg.status,
                 rates: body.rates ?? neg.rates,
                 notes: body.notes ?? neg.notes,
+                alertDate: body.alertDate !== undefined ? body.alertDate : neg.alertDate,
+                alertSent: body.alertDate !== undefined ? false : neg.alertSent, // reset alertSent when date changes
             },
         });
 

@@ -46,6 +46,7 @@ export async function POST(request: Request) {
                         status: negotiation.dateAccept ? "aceita" : "pendente",
                         rates: negotiation.rates || {},
                         notes: negotiation.notes || "",
+                        alertDate: negotiation.alertDate || "",
                     },
                 } : undefined,
             },

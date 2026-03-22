@@ -30,6 +30,62 @@ interface Negotiation {
     id: string; dateNeg: string; dateAccept: string;
     status: "pendente" | "aceita" | "recusada";
     rates: RateSnapshot; notes: string;
+    alertDate?: string; alertSent?: boolean;
+}
+
+function buildGoogleCalendarUrl(clientName: string, alertDate: string) {
+    const d = alertDate.replace(/-/g, "");
+    const title = encodeURIComponent(`Renegociar taxas — ${clientName}`);
+    const details = encodeURIComponent(`Lembrete de renegociação de taxas do cliente ${clientName}.\n\nAcesse: https://casa94.bkaiser.com.br/dashboard/negociacoes`);
+    return `https://calendar.google.com/calendar/event?action=TEMPLATE&text=${title}&dates=${d}/${d}&details=${details}`;
+}
+
+function ReminderField({ alertDate, setAlertDate, label }: { alertDate: string; setAlertDate: (v: string) => void; label?: string }) {
+    const [mode, setMode] = useState<"days" | "date">("days");
+    const [days, setDays] = useState(15);
+
+    function handleDaysSet(d: number) {
+        setDays(d);
+        const target = new Date();
+        target.setDate(target.getDate() + d);
+        setAlertDate(target.toISOString().split("T")[0]);
+    }
+
+    return (
+        <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block">{label || "Lembrete"}</label>
+            <div className="flex gap-2">
+                <button type="button" onClick={() => setMode("days")}
+                    className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${mode === "days" ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>Em X dias</button>
+                <button type="button" onClick={() => setMode("date")}
+                    className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${mode === "date" ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>Data específica</button>
+                {alertDate && (
+                    <button type="button" onClick={() => setAlertDate("")}
+                        className="px-3 py-1.5 text-xs rounded-lg font-semibold bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all">Remover</button>
+                )}
+            </div>
+            {mode === "days" ? (
+                <div className="flex gap-2 items-center">
+                    <div className="flex gap-1.5">
+                        {[7, 15, 30, 60].map(d => (
+                            <button key={d} type="button" onClick={() => handleDaysSet(d)}
+                                className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${days === d && alertDate ? "bg-amber-500/20 text-amber-600 dark:text-amber-400" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
+                                {d}d
+                            </button>
+                        ))}
+                    </div>
+                    <input type="number" min={1} value={days} onChange={(e) => handleDaysSet(parseInt(e.target.value) || 15)}
+                        className="w-16 px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs text-center focus:ring-1 focus:ring-amber-500" />
+                </div>
+            ) : (
+                <input type="date" value={alertDate} onChange={(e) => setAlertDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all" />
+            )}
+            {alertDate && (
+                <p className="text-xs text-amber-500 font-medium">⏰ Lembrete em {fmtDate(alertDate)}</p>
+            )}
+        </div>
+    );
 }
 
 interface Client {
@@ -242,16 +298,19 @@ export default function NegociacoesPage() {
     const [fRates, setFRates] = useState<RateSnapshot>(defaultRates());
     const [fDateN, setFDateN] = useState(today()); const [fDateA, setFDateA] = useState("");
     const [fNotes, setFNotes] = useState("");
+    const [fAlertDate, setFAlertDate] = useState("");
 
     // Renegotiation
     const [showReNeg, setShowReNeg] = useState(false);
     const [rr, setRR] = useState<RateSnapshot>(defaultRates());
     const [rdn, setRDN] = useState(today()); const [rda, setRDA] = useState(""); const [rn, setRN] = useState("");
+    const [rAlertDate, setRAlertDate] = useState("");
 
     // Edit negotiation
     const [editNegId, setEditNegId] = useState<string | null>(null);
     const [er, setER] = useState<RateSnapshot>(defaultRates());
     const [edn, setEDN] = useState(""); const [eda, setEDA] = useState(""); const [en, setEN] = useState("");
+    const [eAlertDate, setEAlertDate] = useState("");
 
     const loadClients = useCallback(async () => {
         try {
@@ -273,7 +332,7 @@ export default function NegociacoesPage() {
 
     function resetNewForm() {
         setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM("");
-        setFRates(defaultRates()); setFDateN(today()); setFDateA(""); setFNotes("");
+        setFRates(defaultRates()); setFDateN(today()); setFDateA(""); setFNotes(""); setFAlertDate("");
         setFDocMsg(""); setFDocOk(null);
     }
 
@@ -313,7 +372,7 @@ export default function NegociacoesPage() {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: fn, stoneCode: fsc, cnpj: fcnpj, phone: fph, email: fem,
-                    negotiation: { dateNeg: fDateN, dateAccept: fDateA, rates: fRates, notes: fNotes },
+                    negotiation: { dateNeg: fDateN, dateAccept: fDateA, rates: fRates, notes: fNotes, alertDate: fAlertDate },
                 }),
             });
             if (r.ok) {
@@ -329,11 +388,11 @@ export default function NegociacoesPage() {
         try {
             const r = await fetch(`/api/clients/${sel.id}/negotiations`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dateNeg: rdn, dateAccept: rda, rates: rr, notes: rn }),
+                body: JSON.stringify({ dateNeg: rdn, dateAccept: rda, rates: rr, notes: rn, alertDate: rAlertDate }),
             });
             if (r.ok) {
                 await loadClients();
-                setShowReNeg(false); setRR(defaultRates()); setRDN(today()); setRDA(""); setRN("");
+                setShowReNeg(false); setRR(defaultRates()); setRDN(today()); setRDA(""); setRN(""); setRAlertDate("");
             }
         } catch { /* */ }
     }
@@ -349,7 +408,7 @@ export default function NegociacoesPage() {
     }
 
     function startEditNeg(neg: Negotiation) {
-        setEditNegId(neg.id); setER({ ...neg.rates }); setEDN(neg.dateNeg); setEDA(neg.dateAccept); setEN(neg.notes);
+        setEditNegId(neg.id); setER({ ...neg.rates }); setEDN(neg.dateNeg); setEDA(neg.dateAccept); setEN(neg.notes); setEAlertDate(neg.alertDate || "");
     }
 
     async function handleSaveEditNeg() {
@@ -357,7 +416,7 @@ export default function NegociacoesPage() {
         try {
             await fetch(`/api/negotiations/${editNegId}`, {
                 method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ rates: er, dateNeg: edn, dateAccept: eda, status: eda ? "aceita" : undefined, notes: en }),
+                body: JSON.stringify({ rates: er, dateNeg: edn, dateAccept: eda, status: eda ? "aceita" : undefined, notes: en, alertDate: eAlertDate }),
             });
             await loadClients(); setEditNegId(null);
         } catch { /* */ }
@@ -546,6 +605,7 @@ export default function NegociacoesPage() {
                         <textarea value={fNotes} onChange={(e) => setFNotes(e.target.value)} rows={3} placeholder="Detalhes da negociação..."
                             className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground resize-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all" />
                     </div>
+                    <ReminderField alertDate={fAlertDate} setAlertDate={setFAlertDate} label="Lembrete de Renegociação" />
                 </div>
 
                 <button onClick={handleSaveClient} disabled={!fn.trim()}
@@ -609,6 +669,7 @@ export default function NegociacoesPage() {
                             <textarea value={rn} onChange={(e) => setRN(e.target.value)} rows={3} placeholder="Motivo da renegociação..."
                                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground resize-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all" />
                         </div>
+                        <ReminderField alertDate={rAlertDate} setAlertDate={setRAlertDate} label="Lembrete de Renegociação" />
                         <div className="flex gap-3">
                             <button onClick={handleAddReNeg} className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-colors">Registrar</button>
                             <button onClick={() => setShowReNeg(false)} className="px-6 py-2.5 rounded-xl bg-secondary text-muted-foreground text-sm font-medium hover:bg-muted transition-colors">Cancelar</button>
@@ -633,6 +694,7 @@ export default function NegociacoesPage() {
                                             <DateFields dn={edn} setDN={setEDN} da={eda} setDA={setEDA} />
                                             <textarea value={en} onChange={(e) => setEN(e.target.value)} rows={2} placeholder="Observações..."
                                                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground text-sm resize-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all" />
+                                            <ReminderField alertDate={eAlertDate} setAlertDate={setEAlertDate} label="Lembrete" />
                                             <button onClick={handleSaveEditNeg}
                                                 className="w-full py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-500 transition-colors">Salvar Alterações</button>
                                         </div>
@@ -665,6 +727,20 @@ export default function NegociacoesPage() {
                                                 <span className="text-muted-foreground">Aceite: <strong className={neg.dateAccept ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>{neg.dateAccept ? fmtDate(neg.dateAccept) : "Pendente"}</strong></span>
                                             </div>
                                             <RatesReadonly rates={neg.rates} />
+                                            {neg.alertDate && (
+                                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                                                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${neg.alertSent ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                                        {neg.alertSent ? '✅ Lembrete enviado' : `⏰ Lembrete: ${fmtDate(neg.alertDate)}`}
+                                                    </span>
+                                                    {!neg.alertSent && (
+                                                        <a href={buildGoogleCalendarUrl(sel?.name || '', neg.alertDate)}
+                                                            target="_blank" rel="noopener noreferrer"
+                                                            className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors">
+                                                            📅 Google Agenda
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
                                             {neg.notes && <p className="text-sm text-muted-foreground mt-3 italic border-t border-border pt-3">{neg.notes}</p>}
                                         </>
                                     )}
