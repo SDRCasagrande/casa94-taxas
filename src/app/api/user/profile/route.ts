@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getSession, signToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 // GET current user profile
@@ -37,12 +37,10 @@ export async function PUT(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
 
-        // Update name
         if (name !== undefined && name.trim()) {
             updateData.name = name.trim();
         }
 
-        // Update login email
         if (email !== undefined && email.trim() !== user.email) {
             const trimmed = email.trim().toLowerCase();
             const existing = await prisma.user.findUnique({ where: { email: trimmed } });
@@ -52,17 +50,14 @@ export async function PUT(request: Request) {
             updateData.email = trimmed;
         }
 
-        // Update phone
         if (phone !== undefined) {
             updateData.phone = phone.trim();
         }
 
-        // Update notification email (optional override)
         if (notificationEmail !== undefined) {
             updateData.notificationEmail = notificationEmail.trim();
         }
 
-        // Update password
         if (newPassword) {
             if (!currentPassword) {
                 return NextResponse.json({ error: 'Senha atual é obrigatória' }, { status: 400 });
@@ -83,7 +78,23 @@ export async function PUT(request: Request) {
             select: { id: true, name: true, email: true, phone: true, notificationEmail: true },
         });
 
-        return NextResponse.json(updated);
+        // Reissue JWT with updated name/email so sidebar reflects changes immediately
+        const newToken = await signToken({
+            userId: updated.id,
+            email: updated.email,
+            name: updated.name,
+        });
+
+        const response = NextResponse.json(updated);
+        response.cookies.set('auth-token', newToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60, // 7 days
+            path: '/',
+        });
+
+        return response;
     } catch (error) {
         console.error('PUT /api/user/profile error:', error);
         return NextResponse.json({ error: 'Internal error' }, { status: 500 });

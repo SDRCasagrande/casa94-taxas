@@ -50,6 +50,8 @@ export default function ConfiguracoesPage() {
             if (res.ok) {
                 setProfile(data);
                 setMsg({ type: "ok", text: "Dados atualizados com sucesso!" });
+                // Reload page to force sidebar to re-read the refreshed JWT cookie
+                setTimeout(() => window.location.reload(), 800);
             } else {
                 setMsg({ type: "err", text: data.error || "Erro ao salvar" });
             }
