@@ -128,6 +128,8 @@ export default function NegociacoesPage() {
     const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month" | "all">("month");
     const [dragId, setDragId] = useState<string | null>(null);
     const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+    const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
+    const CARDS_LIMIT = 10;
     const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
     // New client form
@@ -366,7 +368,12 @@ export default function NegociacoesPage() {
 
                                     {/* Cards */}
                                     <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
-                                        {stageNegs.map(neg => (
+                                        {(() => {
+                                            const isExpanded = expandedStages[stage.id];
+                                            const visible = isExpanded ? stageNegs : stageNegs.slice(0, CARDS_LIMIT);
+                                            const remaining = stageNegs.length - CARDS_LIMIT;
+                                            return (<>
+                                        {visible.map(neg => (
                                             <div key={neg.id} draggable
                                                 onDragStart={() => onDragStart(neg.id)}
                                                 className={`bg-card border border-border rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-blue-500/30 transition-all group overflow-hidden ${dragId === neg.id ? "opacity-50 scale-95" : ""}`}>
@@ -398,7 +405,7 @@ export default function NegociacoesPage() {
                                                     )}
                                                 </div>
 
-                                                {/* Hover actions — fixed height so card doesn't jump */}
+                                                {/* Hover actions */}
                                                 <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50 h-0 overflow-hidden opacity-0 group-hover:h-auto group-hover:opacity-100 transition-all">
                                                     <button onClick={() => shareWhatsApp(neg)} className="p-1 rounded-md text-[10px] font-medium text-emerald-500 hover:bg-emerald-500/10 flex items-center gap-0.5" title="WhatsApp">
                                                         <MessageSquare className="w-3 h-3" /> Zap
@@ -414,7 +421,7 @@ export default function NegociacoesPage() {
                                                     <button onClick={() => deleteNeg(neg.id)} className="p-1 rounded-md text-muted-foreground hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
                                                 </div>
 
-                                                {/* Stage timestamp — compact */}
+                                                {/* Stage timestamp */}
                                                 {neg.stageHistory && neg.stageHistory.length > 0 && (
                                                     <p className="text-[10px] text-muted-foreground/50 mt-1.5 flex items-center gap-0.5 truncate">
                                                         <Clock className="w-2.5 h-2.5 shrink-0" />
@@ -424,6 +431,20 @@ export default function NegociacoesPage() {
                                                 )}
                                             </div>
                                         ))}
+                                        {!isExpanded && remaining > 0 && (
+                                            <button onClick={() => setExpandedStages(prev => ({ ...prev, [stage.id]: true }))}
+                                                className="w-full py-2 text-[11px] font-medium text-blue-500 hover:bg-blue-500/5 rounded-xl border border-dashed border-blue-500/30 transition-colors">
+                                                Ver mais {remaining} negociação{remaining > 1 ? "ões" : ""}
+                                            </button>
+                                        )}
+                                        {isExpanded && remaining > 0 && (
+                                            <button onClick={() => setExpandedStages(prev => ({ ...prev, [stage.id]: false }))}
+                                                className="w-full py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground rounded-xl transition-colors">
+                                                Recolher
+                                            </button>
+                                        )}
+                                        </>);
+                                        })()}
 
                                         {stageNegs.length === 0 && (
                                             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground/30">
