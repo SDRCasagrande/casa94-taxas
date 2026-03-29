@@ -18,7 +18,7 @@ interface Portfolio { tpvTotal: number; revenueTotal: number; agentCommission: n
 interface Metrics {
     totalClients: number; activeClients: number; canceledClients: number;
     totalNegotiations: number; pendingNeg: number; acceptedNeg: number; rejectedNeg: number; conversionRate: number;
-    pipeline: Pipeline; pendingTasks: number; portfolio: Portfolio;
+    pipeline: Pipeline; pendingTasks: number; monthlyCredentialings: number; portfolio: Portfolio;
     avgRates: { debit: number; credit1x: number; credit2to6: number; credit7to12: number; pix: number; rav: number };
     recentClients: { id: string; name: string; stoneCode: string; cnpj: string; status?: string; negotiations: { status: string; dateNeg: string; rates: Record<string, number> }[] }[];
     upcomingRenegotiations: RenegAlert[];
@@ -125,7 +125,7 @@ export default function DashboardPage() {
             )}
 
             {/* ═══ KPI Cards — Top Row ═══ */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="bg-card border border-border rounded-2xl p-4 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/10"><Briefcase className="w-4 h-4 text-white" /></div>
@@ -133,6 +133,13 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-2xl font-black text-foreground">{metrics?.activeClients ?? 0}</p>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">Clientes Ativos</p>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4 hover:shadow-md transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/10"><UserPlus className="w-4 h-4 text-white" /></div>
+                    </div>
+                    <p className="text-2xl font-black text-foreground">{metrics?.monthlyCredentialings ?? 0}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">Credenciamentos Mês</p>
                 </div>
                 <div className="bg-card border border-border rounded-2xl p-4 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-2">

@@ -74,7 +74,7 @@ export async function GET() {
             take: 6,
         });
 
-        let pendingTasks = 0;
+
 
         // TPV portfolio — current month volumes
         const now = new Date();
@@ -126,11 +126,37 @@ export async function GET() {
             .filter(Boolean)
             .sort((a, b) => (a!.daysLeft - b!.daysLeft));
 
+        // Monthly credentialing count — clients credentialed this month
+        const allClients = await prisma.client.findMany({
+            where: { userId: uid },
+            select: { credentialDate: true },
+        });
+        const monthlyCredentialings = allClients.filter(c => {
+            if (!c.credentialDate) return false;
+            try {
+                return c.credentialDate.startsWith(currentMonth);
+            } catch { return false; }
+        }).length;
+
+        // Pending tasks for this user
+        let pendingTasks = 0;
+        try {
+            pendingTasks = await prisma.task.count({
+                where: {
+                    OR: [
+                        { createdById: uid },
+                        { assigneeId: uid },
+                    ],
+                    completed: false,
+                },
+            });
+        } catch { /* */ }
+
         return NextResponse.json({
             totalClients, activeClients, canceledClients,
             totalNegotiations, pendingNeg, acceptedNeg, rejectedNeg, conversionRate,
             pipeline, avgRates, recentClients, upcomingRenegotiations,
-            pendingTasks,
+            pendingTasks, monthlyCredentialings,
             portfolio: { tpvTotal, revenueTotal, agentCommission, month: currentMonth },
         });
     } catch (error) {
