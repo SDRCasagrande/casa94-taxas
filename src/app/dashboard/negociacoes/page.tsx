@@ -6,7 +6,7 @@ import { RI } from "@/components/rate-input";
 import { formatarDocumento, validarDocumento } from "@/lib/documento";
 import {
     Handshake, Plus, X, ChevronLeft, LayoutGrid, List, Search,
-    Calendar, CalendarPlus, MessageSquare, Clock, User, Trash2, CheckCircle,
+    Calendar, CalendarPlus, CalendarDays, MessageSquare, Clock, User, Trash2, CheckCircle,
     AlertCircle, Loader2, ExternalLink, GripVertical, ArrowRight
 } from "lucide-react";
 
@@ -125,6 +125,7 @@ export default function NegociacoesPage() {
     const [view, setView] = useState<"board" | "list" | "detail" | "new">("board");
     const [selId, setSelId] = useState<string | null>(null);
     const [search, setSearch] = useState("");
+    const [timeFilter, setTimeFilter] = useState<"today" | "week" | "month" | "all">("month");
     const [dragId, setDragId] = useState<string | null>(null);
     const [dragOverStage, setDragOverStage] = useState<string | null>(null);
     const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -151,7 +152,21 @@ export default function NegociacoesPage() {
 
     // All negotiations flat
     const allNegs = clients.flatMap(c => c.negotiations.map(n => ({ ...n, clientName: c.name, clientId: c.id, cnpj: c.cnpj, stoneCode: c.stoneCode, clientPhone: c.phone })));
-    const filtered = search ? allNegs.filter(n => n.clientName.toLowerCase().includes(search.toLowerCase()) || n.cnpj.includes(search) || n.stoneCode.includes(search)) : allNegs;
+
+    // Time filter
+    const timeFiltered = (() => {
+        if (timeFilter === "all") return allNegs;
+        const now = new Date();
+        let cutoff: Date;
+        if (timeFilter === "today") { cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+        else if (timeFilter === "week") { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); }
+        else { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30); }
+        return allNegs.filter(n => {
+            try { return new Date(n.dateNeg + "T00:00:00") >= cutoff; } catch { return true; }
+        });
+    })();
+
+    const filtered = search ? timeFiltered.filter(n => n.clientName.toLowerCase().includes(search.toLowerCase()) || n.cnpj.includes(search) || n.stoneCode.includes(search)) : timeFiltered;
 
     // Stage transition
     const changeStage = async (negId: string, newStatus: string) => {
@@ -296,7 +311,19 @@ export default function NegociacoesPage() {
                         <p className="text-xs text-muted-foreground">{allNegs.length} negociações · {clients.length} clientes</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Time filters */}
+                    <div className="flex items-center gap-0.5 bg-muted/40 p-0.5 rounded-lg">
+                        {(["today", "week", "month", "all"] as const).map(tf => {
+                            const labels = { today: "Hoje", week: "Semana", month: "Mês", all: "Todos" };
+                            return (
+                                <button key={tf} onClick={() => setTimeFilter(tf)}
+                                    className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${timeFilter === tf ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                                    {labels[tf]}
+                                </button>
+                            );
+                        })}
+                    </div>
                     <div className="relative"><Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
                             className="pl-8 pr-3 py-2 rounded-xl bg-secondary border border-border text-sm text-foreground w-48 focus:outline-none focus:border-blue-500/50" />

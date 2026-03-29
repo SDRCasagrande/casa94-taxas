@@ -17,12 +17,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         if (body.name !== undefined) updateData.name = body.name.trim();
         if (body.notificationEmail !== undefined) updateData.notificationEmail = body.notificationEmail.trim();
         if (body.isActive !== undefined) updateData.isActive = body.isActive;
+        if (body.roleId !== undefined) updateData.roleId = body.roleId || null;
         if (body.newPassword) updateData.password = await bcrypt.hash(body.newPassword, 12);
 
         const user = await prisma.user.update({
             where: { id },
             data: updateData,
-            select: { id: true, name: true, email: true, notificationEmail: true, isAdmin: true, isActive: true, createdAt: true },
+            select: { id: true, name: true, email: true, notificationEmail: true, isAdmin: true, isActive: true, roleId: true, role: { select: { id: true, name: true } }, createdAt: true },
         });
 
         return NextResponse.json(user);

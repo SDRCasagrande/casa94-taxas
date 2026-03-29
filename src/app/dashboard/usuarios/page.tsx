@@ -11,6 +11,7 @@ import { PERMISSIONS, PermissionKey } from "@/lib/permissions";
 interface User {
     id: string; name: string; email: string; notificationEmail: string;
     isAdmin: boolean; isActive: boolean; createdAt: string;
+    roleId: string | null; role: { id: string; name: string } | null;
 }
 interface RolePermission { id: string; permission: string; }
 interface Role {
@@ -71,6 +72,7 @@ export default function UsuariosPage() {
         } catch { setMsg({ type: "err", text: "Erro de conexão" }); } finally { setSaving(false); }
     };
     const toggleActive = async (u: User) => { try { await fetch(`/api/admin/users/${u.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !u.isActive }) }); load(); } catch { /* */ } };
+    const assignRole = async (userId: string, roleId: string | null) => { try { await fetch(`/api/admin/users/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roleId }) }); load(); } catch { /* */ } };
     const resetPassword = async () => {
         if (!resetId || !resetPw || resetPw.length < 6) { setMsg({ type: "err", text: "Senha deve ter no mínimo 6 caracteres" }); return; }
         try { const res = await fetch(`/api/admin/users/${resetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ newPassword: resetPw }) }); if (res.ok) { setMsg({ type: "ok", text: "Senha resetada!" }); setResetId(null); setResetPw(""); } } catch { /* */ }
@@ -212,9 +214,17 @@ export default function UsuariosPage() {
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="text-sm font-semibold text-foreground">{user.name}</p>
                                                 {user.isAdmin && <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">Admin</span>}
+                                                {user.role && <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full font-bold">{user.role.name}</span>}
                                                 {!user.isActive && <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Inativo</span>}
                                             </div>
-                                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                                <select value={user.roleId || ""} onChange={e => assignRole(user.id, e.target.value || null)}
+                                                    className="text-[11px] bg-transparent border border-border rounded-lg px-2 py-0.5 text-muted-foreground focus:outline-none focus:border-emerald-500/50 max-w-[130px]">
+                                                    <option value="">Sem cargo</option>
+                                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                                </select>
+                                            </div>
                                             {user.notificationEmail && <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1"><Mail className="w-3 h-3" /> {user.notificationEmail}</p>}
                                         </div>
                                     </div>
