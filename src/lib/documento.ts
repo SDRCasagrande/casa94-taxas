@@ -72,15 +72,24 @@ export function formatarDocumento(doc: string): string {
 }
 
 // Validate either CPF or CNPJ
-export function validarDocumento(doc: string): { valido: boolean; tipo: "cpf" | "cnpj" | null; mensagem: string } {
+export function validarDocumento(doc: string, allowBypass = true): { valido: boolean; tipo: "cpf" | "cnpj" | null; mensagem: string } {
+    if (allowBypass && isDocumentBypass(doc)) {
+        return { valido: true, tipo: "cpf", mensagem: "CPF genérico aceito" };
+    }
     const tipo = detectarTipo(doc);
     if (!tipo) return { valido: false, tipo: null, mensagem: "Digite 11 (CPF) ou 14 (CNPJ) digitos" };
     if (tipo === "cpf") {
         return validarCPF(doc)
-            ? { valido: true, tipo: "cpf", mensagem: "CPF valido" }
-            : { valido: false, tipo: "cpf", mensagem: "CPF invalido" };
+            ? { valido: true, tipo: "cpf", mensagem: "CPF válido ✓" }
+            : { valido: false, tipo: "cpf", mensagem: "CPF inválido" };
     }
     return validarCNPJ(doc)
-        ? { valido: true, tipo: "cnpj", mensagem: "CNPJ valido" }
-        : { valido: false, tipo: "cnpj", mensagem: "CNPJ invalido" };
+        ? { valido: true, tipo: "cnpj", mensagem: "CNPJ válido ✓" }
+        : { valido: false, tipo: "cnpj", mensagem: "CNPJ inválido" };
+}
+
+// Check if document is a bypass (000.000.000-00)
+export function isDocumentBypass(doc: string): boolean {
+    const nums = doc.replace(/\D/g, "");
+    return nums === "00000000000";
 }

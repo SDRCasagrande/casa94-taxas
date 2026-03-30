@@ -327,7 +327,7 @@ export default function TarefasPage() {
     );
 }
 
-/* ═══ TASK DETAIL MODAL ═══ */
+/* ═══ TASK DETAIL MODAL (Centered + Save Button) ═══ */
 function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
     task: TaskData; users: UserOption[];
     onUpdate: (data: Record<string, any>) => void; onDelete: () => void; onClose: () => void;
@@ -339,19 +339,43 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
     const [time, setTime] = useState(task.time);
     const [assigneeId, setAssigneeId] = useState(task.assigneeId || "");
     const [editingTitle, setEditingTitle] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [dirty, setDirty] = useState(false);
 
-    const saveField = (field: string, value: any) => { onUpdate({ [field]: value }); };
+    // Track changes
+    const markDirty = () => { if (!dirty) setDirty(true); };
+
+    function handleSave() {
+        const updates: Record<string, any> = {};
+        if (title.trim() && title !== task.title) updates.title = title.trim();
+        if (description !== (task.description || "")) updates.description = description;
+        if (priority !== task.priority) updates.priority = priority;
+        if (date !== task.date) updates.date = date;
+        if (time !== task.time) updates.time = time;
+        const newAssignee = assigneeId || null;
+        if (newAssignee !== task.assigneeId) updates.assigneeId = newAssignee;
+
+        if (Object.keys(updates).length > 0) {
+            onUpdate(updates);
+        }
+
+        // Show saved animation
+        setSaved(true);
+        setDirty(false);
+        setTimeout(() => setSaved(false), 2000);
+    }
+
     const pri = PRIORITY_MAP[priority] || PRIORITY_MAP.medium;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md h-full bg-card border-l border-border shadow-2xl flex flex-col animate-in slide-in-from-right" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-lg max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
                     <div className="flex items-center gap-2">
                         <button onClick={() => onUpdate({ completed: !task.completed })}
-                            className={`${task.completed ? "text-emerald-500" : "text-muted-foreground hover:text-blue-500"}`}>
+                            className={`${task.completed ? "text-emerald-500" : "text-muted-foreground hover:text-blue-500"} transition-colors`}>
                             {task.completed ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                         </button>
                         <span className="text-sm font-bold text-foreground">Detalhes da Tarefa</span>
@@ -362,12 +386,12 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
                     {/* Title */}
                     {editingTitle ? (
-                        <input value={title} onChange={e => setTitle(e.target.value)} autoFocus
-                            onBlur={() => { if (title.trim() && title !== task.title) saveField("title", title.trim()); setEditingTitle(false); }}
-                            onKeyDown={e => { if (e.key === "Enter") { if (title.trim() && title !== task.title) saveField("title", title.trim()); setEditingTitle(false); } }}
-                            className="w-full text-lg font-bold text-foreground bg-transparent border-b border-blue-500 focus:outline-none pb-1" />
+                        <input value={title} onChange={e => { setTitle(e.target.value); markDirty(); }} autoFocus
+                            onBlur={() => setEditingTitle(false)}
+                            onKeyDown={e => { if (e.key === "Enter") setEditingTitle(false); if (e.key === "Escape") { setTitle(task.title); setEditingTitle(false); } }}
+                            className="w-full text-lg font-bold text-foreground bg-transparent border-b-2 border-blue-500 focus:outline-none pb-1" />
                     ) : (
-                        <h2 onClick={() => setEditingTitle(true)} className={`text-lg font-bold cursor-pointer hover:text-blue-500 transition-colors ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{task.title}</h2>
+                        <h2 onClick={() => setEditingTitle(true)} className={`text-lg font-bold cursor-pointer hover:text-blue-500 transition-colors ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{title || task.title}</h2>
                     )}
 
                     {/* Meta Grid */}
@@ -375,7 +399,7 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                         {/* Priority */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Prioridade</label>
-                            <select value={priority} onChange={e => { setPriority(e.target.value); saveField("priority", e.target.value); }}
+                            <select value={priority} onChange={e => { setPriority(e.target.value); markDirty(); }}
                                 className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-blue-500/50">
                                 <option value="high">🔴 Alta</option>
                                 <option value="medium">🟡 Média</option>
@@ -386,7 +410,7 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                         {/* Assignee */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Responsável</label>
-                            <select value={assigneeId} onChange={e => { setAssigneeId(e.target.value); saveField("assigneeId", e.target.value || null); }}
+                            <select value={assigneeId} onChange={e => { setAssigneeId(e.target.value); markDirty(); }}
                                 className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-blue-500/50">
                                 <option value="">Sem responsável</option>
                                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -396,14 +420,14 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                         {/* Date */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Data</label>
-                            <input type="date" value={date} onChange={e => { setDate(e.target.value); saveField("date", e.target.value); }}
+                            <input type="date" value={date} onChange={e => { setDate(e.target.value); markDirty(); }}
                                 className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-blue-500/50 [color-scheme:dark]" />
                         </div>
 
                         {/* Time */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Horário</label>
-                            <input type="time" value={time} onChange={e => { setTime(e.target.value); saveField("time", e.target.value); }}
+                            <input type="time" value={time} onChange={e => { setTime(e.target.value); markDirty(); }}
                                 className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-blue-500/50 [color-scheme:dark]" />
                         </div>
                     </div>
@@ -411,8 +435,7 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                     {/* Description */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Descrição / Notas</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)}
-                            onBlur={() => { if (description !== (task.description || "")) saveField("description", description); }}
+                        <textarea value={description} onChange={e => { setDescription(e.target.value); markDirty(); }}
                             rows={4} placeholder="Adicione detalhes, observações..."
                             className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-blue-500/50 resize-none" />
                     </div>
@@ -429,14 +452,32 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between px-5 py-3 border-t border-border">
-                    <button onClick={() => onUpdate({ starred: !task.starred })}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${task.starred ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground hover:text-amber-500"}`}>
-                        <Star className={`w-3.5 h-3.5 ${task.starred ? "fill-amber-500" : ""}`} /> {task.starred ? "Favorita" : "Favoritar"}
-                    </button>
-                    <button onClick={() => { if (confirm("Excluir esta tarefa?")) onDelete(); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20">
-                        <Trash2 className="w-3.5 h-3.5" /> Excluir
+                <div className="flex items-center justify-between px-5 py-3 border-t border-border shrink-0">
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => { onUpdate({ starred: !task.starred }); }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${task.starred ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground hover:text-amber-500"}`}>
+                            <Star className={`w-3.5 h-3.5 ${task.starred ? "fill-amber-500" : ""}`} /> {task.starred ? "Favorita" : "Favoritar"}
+                        </button>
+                        <button onClick={() => { if (confirm("Excluir esta tarefa?")) onDelete(); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20">
+                            <Trash2 className="w-3.5 h-3.5" /> Excluir
+                        </button>
+                    </div>
+
+                    {/* Save Button */}
+                    <button onClick={handleSave}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg ${
+                            saved
+                                ? "bg-emerald-500 text-white scale-105 shadow-emerald-500/30"
+                                : dirty
+                                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 animate-pulse"
+                                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20"
+                        }`}>
+                        {saved ? (
+                            <><Check className="w-4 h-4" /> Salvo!</>
+                        ) : (
+                            <><Check className="w-4 h-4" /> Salvar</>
+                        )}
                     </button>
                 </div>
             </div>

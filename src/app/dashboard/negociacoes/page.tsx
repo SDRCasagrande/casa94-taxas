@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { formatPercent, BRAND_PRESETS, type BrandRates } from "@/lib/calculator";
 import { RI } from "@/components/rate-input";
 import { formatarDocumento, validarDocumento } from "@/lib/documento";
+import { DocumentInput } from "@/components/DocumentInput";
+import { PhoneInput } from "@/components/PhoneInput";
 import {
     Handshake, Plus, X, ChevronLeft, LayoutGrid, List, Search,
     Calendar, CalendarPlus, CalendarDays, MessageSquare, Clock, User, Trash2, CheckCircle,
@@ -199,21 +201,8 @@ export default function NegociacoesPage() {
     // New client + negotiation
     function resetNewForm() { setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM(""); setFRates(defaultRates()); setFDateN(today()); setFNotes(""); setFAssignee(""); setFDocMsg(""); setFDocOk(null); }
 
-    async function handleCnpjChange(raw: string) {
-        const formatted = formatarDocumento(raw); setFCNPJ(formatted);
-        const nums = raw.replace(/\D/g, "");
-        if (nums.length === 14) {
-            const v = validarDocumento(nums); setFDocMsg(v.mensagem); setFDocOk(v.valido);
-            if (v.valido && v.tipo === "cnpj") {
-                setCnpjLoading(true);
-                try {
-                    const r = await fetch(`/api/cnpj?cnpj=${nums}`);
-                    if (r.ok) { const data = await r.json(); if (data.razaoSocial && !fn.trim()) setFN(data.razaoSocial); if (data.telefone && !fph.trim()) setFPH(data.telefone); if (data.email && !fem.trim()) setFEM(data.email); setFDocMsg(`CNPJ válido — ${data.razaoSocial || "Encontrado"}`); }
-                } catch { /* */ }
-                setCnpjLoading(false);
-            }
-        } else if (nums.length === 11) { const v = validarDocumento(nums); setFDocMsg(v.mensagem); setFDocOk(v.valido); }
-        else { setFDocMsg(""); setFDocOk(null); }
+    async function handleCnpjFetch(data: { name?: string; fantasia?: string }) {
+        if (data.name && !fn.trim()) setFN(data.name);
     }
 
     async function handleSaveClient() {
@@ -272,11 +261,10 @@ export default function NegociacoesPage() {
                             <input value={fn} onChange={e => setFN(e.target.value)} placeholder="Nome completo" className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-emerald-500/50" /></div>
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">Stone Code</label>
                             <input value={fsc} onChange={e => setFSC(e.target.value)} placeholder="123456" className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-emerald-500/50" /></div>
-                        <div><label className="text-xs font-medium text-muted-foreground block mb-1">CNPJ/CPF {cnpjLoading && <span className="text-emerald-500 animate-pulse">buscando...</span>}</label>
-                            <input value={fcnpj} onChange={e => handleCnpjChange(e.target.value)} placeholder="00.000.000/0000-00" className={`w-full px-3 py-2.5 rounded-xl bg-secondary border text-foreground text-sm focus:outline-none ${fDocOk === true ? "border-emerald-500" : fDocOk === false ? "border-red-500" : "border-border"}`} />
-                            {fDocMsg && <p className={`text-xs mt-1 ${fDocOk ? "text-emerald-500" : "text-red-500"}`}>{fDocMsg}</p>}</div>
+                        <div><label className="text-xs font-medium text-muted-foreground block mb-1">CNPJ/CPF</label>
+                            <DocumentInput value={fcnpj} onChange={setFCNPJ} onCNPJData={handleCnpjFetch} allowBypass /></div>
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">Telefone</label>
-                            <input value={fph} onChange={e => setFPH(e.target.value)} placeholder="(00) 00000-0000" className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-emerald-500/50" /></div>
+                            <PhoneInput value={fph} onChange={setFPH} /></div>
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">E-mail</label>
                             <input value={fem} onChange={e => setFEM(e.target.value)} placeholder="email@empresa.com" className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-emerald-500/50" /></div>
                     </div>

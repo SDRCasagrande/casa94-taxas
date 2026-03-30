@@ -40,6 +40,8 @@ import {
     Activity
 } from "lucide-react";
 import { RI } from "@/components/rate-input";
+import { DocumentInput } from "@/components/DocumentInput";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const STORAGE_KEY = "bitkaiser_proposta_v2";
 const CRM_STORAGE_KEY = "bitkaiser_negociacoes";
@@ -303,11 +305,9 @@ export default function PropostaPage() {
                             </div>
                         )}
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                        <input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="CNPJ/CPF"
-                            className="px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-[11px] placeholder:text-muted-foreground" />
-                        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone"
-                            className="px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-[11px] placeholder:text-muted-foreground" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                        <DocumentInput value={cnpj} onChange={setCnpj} compact placeholder="CPF ou CNPJ" />
+                        <PhoneInput value={phone} onChange={setPhone} compact placeholder="Telefone" />
                         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail"
                             className="px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-[11px] placeholder:text-muted-foreground" />
                     </div>
