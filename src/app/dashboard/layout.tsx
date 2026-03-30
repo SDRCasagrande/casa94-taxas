@@ -8,18 +8,18 @@ import { TasksDrawer } from "@/components/tasks-drawer";
 import {
     LayoutDashboard, Calculator, FileBarChart, GitCompare,
     Handshake, Settings, Users, LogOut, Menu, X, ChevronRight,
-    Bell, Search, MoreHorizontal, CheckSquare, Briefcase
+    Bell, Search, CheckSquare, Briefcase
 } from "lucide-react";
 
 /* ═══ Navigation Items ═══ */
 const MAIN_NAV = [
-    { href: "/dashboard", label: "Início", icon: LayoutDashboard, mobileLabel: "Início" },
-    { href: "/dashboard/cet", label: "Calculador CET", icon: Calculator, mobileLabel: "CET" },
-    { href: "/dashboard/proposta", label: "Simulador", icon: FileBarChart, mobileLabel: "Simulador" },
-    { href: "/dashboard/comparativo", label: "Comparação", icon: GitCompare, mobileLabel: "Comparar" },
-    { href: "/dashboard/negociacoes", label: "Pipeline", icon: Handshake, mobileLabel: "Pipeline" },
-    { href: "/dashboard/clientes", label: "Clientes", icon: Briefcase, mobileLabel: "Clientes" },
-    { href: "/dashboard/tarefas", label: "Tarefas", icon: CheckSquare, mobileLabel: "Tarefas" },
+    { href: "/dashboard", label: "Início", icon: LayoutDashboard },
+    { href: "/dashboard/cet", label: "Calculador CET", icon: Calculator },
+    { href: "/dashboard/proposta", label: "Simulador", icon: FileBarChart },
+    { href: "/dashboard/comparativo", label: "Comparação", icon: GitCompare },
+    { href: "/dashboard/negociacoes", label: "Pipeline", icon: Handshake },
+    { href: "/dashboard/clientes", label: "Clientes", icon: Briefcase },
+    { href: "/dashboard/tarefas", label: "Tarefas", icon: CheckSquare },
 ];
 const ADMIN_NAV = [
     { href: "/dashboard/usuarios", label: "Equipe", icon: Users },
@@ -29,9 +29,7 @@ const PERSONAL_NAV = [
 ];
 const NAV_ITEMS = [...MAIN_NAV, ...ADMIN_NAV, ...PERSONAL_NAV];
 
-// Bottom nav shows first 4 + "More" overflow
-const BOTTOM_NAV_ITEMS = NAV_ITEMS.slice(0, 4);
-const OVERFLOW_ITEMS = NAV_ITEMS.slice(4);
+
 
 export default function DashboardLayout({
     children,
@@ -39,7 +37,7 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [moreOpen, setMoreOpen] = useState(false);
+
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
     const router = useRouter();
     const pathname = usePathname();
@@ -54,7 +52,6 @@ export default function DashboardLayout({
     // Close menus on route change
     useEffect(() => {
         setSidebarOpen(false);
-        setMoreOpen(false);
     }, [pathname]);
 
     async function handleLogout() {
@@ -63,7 +60,7 @@ export default function DashboardLayout({
     }
 
     const currentNav = NAV_ITEMS.find((item) => item.href === pathname);
-    const isOverflowActive = OVERFLOW_ITEMS.some(item => pathname === item.href);
+
 
     return (
         <div className="min-h-screen bg-background text-foreground lg:flex lg:flex-row">
@@ -255,93 +252,11 @@ export default function DashboardLayout({
                 </header>
 
                 {/* ═══ Page Content ═══ */}
-                <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 overflow-y-auto">
+                <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
                     {children}
                 </main>
             </div>
 
-            {/* ═══ Mobile Bottom Nav ═══ */}
-            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border lg:hidden safe-area-bottom">
-                <div className="flex items-center justify-around h-16 px-2 max-w-lg mx-auto">
-                    {BOTTOM_NAV_ITEMS.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex flex-col items-center justify-center gap-0.5 w-16 py-1.5 rounded-xl transition-all duration-200
-                                    ${isActive
-                                        ? "text-emerald-600 dark:text-emerald-400"
-                                        : "text-muted-foreground hover:text-foreground"
-                                    }`}
-                            >
-                                <div className={`p-1.5 rounded-lg transition-all ${
-                                    isActive ? "bg-emerald-500/10 shadow-sm" : ""
-                                }`}>
-                                    <item.icon className={`w-5 h-5 ${isActive ? "stroke-[2.5]" : ""}`} />
-                                </div>
-                                <span className={`text-[10px] font-medium leading-none ${isActive ? "font-bold" : ""}`}>
-                                    {(item as typeof item & { mobileLabel?: string }).mobileLabel || item.label}
-                                </span>
-                            </Link>
-                        );
-                    })}
-
-                    {/* More button */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setMoreOpen(!moreOpen)}
-                            className={`flex flex-col items-center justify-center gap-0.5 w-16 py-1.5 rounded-xl transition-all duration-200
-                                ${isOverflowActive || moreOpen
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-muted-foreground hover:text-foreground"
-                                }`}
-                        >
-                            <div className={`p-1.5 rounded-lg transition-all ${
-                                isOverflowActive ? "bg-emerald-500/10 shadow-sm" : ""
-                            }`}>
-                                <MoreHorizontal className="w-5 h-5" />
-                            </div>
-                            <span className="text-[10px] font-medium leading-none">Mais</span>
-                        </button>
-
-                        {/* More dropdown */}
-                        {moreOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
-                                <div className="absolute bottom-full right-0 mb-2 w-52 bg-card border border-border rounded-2xl shadow-2xl shadow-black/20 overflow-hidden z-50">
-                                    {OVERFLOW_ITEMS.map((item) => {
-                                        const isActive = pathname === item.href;
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all
-                                                    ${isActive
-                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                                                    }`}
-                                            >
-                                                <item.icon className="w-4 h-4" />
-                                                {item.label}
-                                            </Link>
-                                        );
-                                    })}
-                                    <div className="border-t border-border">
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all"
-                                        >
-                                            <LogOut className="w-4 h-4" />
-                                            Sair
-                                        </button>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </nav>
         </div>
     );
 }
