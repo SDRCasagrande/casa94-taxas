@@ -148,7 +148,27 @@ export default function TarefasPage() {
                 </div>
             </div>
 
-            <div className="flex flex-1 gap-4 min-h-0 overflow-hidden">
+            <div className="flex flex-1 gap-4 min-h-0 overflow-hidden flex-col lg:flex-row">
+                {/* ═══ Mobile Filter Strip ═══ */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 lg:hidden shrink-0 -mx-1 px-1">
+                    <button onClick={() => setSidebarFilter("all")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "all" ? "bg-blue-600 text-white" : "bg-secondary text-muted-foreground"}`}>
+                        <CheckSquare className="w-3.5 h-3.5" /> Todas {totalPending > 0 && <span className="opacity-70">{totalPending}</span>}
+                    </button>
+                    <button onClick={() => setSidebarFilter("starred")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "starred" ? "bg-amber-500/20 text-amber-500" : "bg-secondary text-muted-foreground"}`}>
+                        <Star className="w-3.5 h-3.5" /> Estrela {totalStarred > 0 && <span className="opacity-70">{totalStarred}</span>}
+                    </button>
+                    {assignedToMe.length > 0 && (
+                        <button onClick={() => setSidebarFilter("assigned")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "assigned" ? "bg-purple-500/20 text-purple-500" : "bg-secondary text-muted-foreground"}`}>
+                            <UserPlus className="w-3.5 h-3.5" /> Minhas
+                        </button>
+                    )}
+                    {lists.map(l => (
+                        <button key={l.id} onClick={() => setSidebarFilter("all")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-secondary text-muted-foreground">
+                            {l.name} <span className="opacity-50">{l.tasks.filter(t => !t.completed).length}</span>
+                        </button>
+                    ))}
+                </div>
+
                 {/* Sidebar */}
                 <div className="w-52 shrink-0 hidden lg:flex flex-col gap-0.5 overflow-y-auto">
                     <button onClick={() => setSidebarFilter("all")} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${sidebarFilter === "all" ? "bg-blue-600 text-white" : "text-muted-foreground hover:bg-muted"}`}>

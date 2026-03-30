@@ -515,20 +515,20 @@ export default function ClientesPage() {
                 </div>
                 <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4 text-blue-500" /><span className="text-[10px] font-bold text-muted-foreground uppercase">TPV Mês</span></div>
-                    <p className="text-2xl font-black text-foreground">{fmtMoney(monthSummary.tpv)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-foreground">{fmtMoney(monthSummary.tpv)}</p>
                 </div>
                 <div className="bg-card border border-border rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1"><DollarSign className="w-4 h-4 text-amber-500" /><span className="text-[10px] font-bold text-muted-foreground uppercase">Receita Taxas</span></div>
-                    <p className="text-2xl font-black text-amber-500">{fmtMoney(monthSummary.rev)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-amber-500">{fmtMoney(monthSummary.rev)}</p>
                 </div>
                 <div className="bg-card border border-purple-500/20 rounded-xl p-4 bg-gradient-to-br from-purple-500/5 to-indigo-500/5">
                     <div className="flex items-center gap-2 mb-1"><Star className="w-4 h-4 text-purple-500" /><span className="text-[10px] font-bold text-purple-500 uppercase">Sua Comissão</span></div>
-                    <p className="text-2xl font-black text-purple-500">{fmtMoney(monthSummary.agent)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-purple-500">{fmtMoney(monthSummary.agent)}</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div className="relative flex-1"><Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome, CNPJ ou Stone Code..."
                         className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-emerald-500/50" /></div>

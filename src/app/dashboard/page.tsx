@@ -145,21 +145,21 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/10"><TrendingUp className="w-4 h-4 text-white" /></div>
                     </div>
-                    <p className="text-2xl font-black text-foreground">{fmtMoney(portfolio.tpvTotal)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-foreground">{fmtMoney(portfolio.tpvTotal)}</p>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">TPV {fmtMonth(portfolio.month)}</p>
                 </div>
                 <div className="bg-card border border-border rounded-2xl p-4 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/10"><DollarSign className="w-4 h-4 text-white" /></div>
                     </div>
-                    <p className="text-2xl font-black text-amber-500">{fmtMoney(portfolio.revenueTotal)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-amber-500">{fmtMoney(portfolio.revenueTotal)}</p>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">Receita Taxas</p>
                 </div>
                 <div className="bg-card border border-purple-500/20 rounded-2xl p-4 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-2">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/10"><Star className="w-4 h-4 text-white" /></div>
                     </div>
-                    <p className="text-2xl font-black text-purple-500">{fmtMoney(portfolio.agentCommission)}</p>
+                    <p className="text-lg sm:text-2xl font-black text-purple-500">{fmtMoney(portfolio.agentCommission)}</p>
                     <p className="text-[10px] text-purple-500 uppercase font-bold tracking-wider mt-0.5">Sua Comissão</p>
                 </div>
             </div>

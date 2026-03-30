@@ -476,7 +476,7 @@ export default function PropostaPage() {
                         <Activity className="w-4 h-4 text-foreground" />
                         <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">CET Stone — {activeBrand} (1x-12x)</h3>
                     </div>
-                    <div className="grid grid-cols-6 gap-1">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                         {cetTable.map(({ inst, cet }) => {
                             const color = cet < 5 ? "text-emerald-500" : cet < 10 ? "text-amber-500" : "text-red-500";
                             const bg = cet < 5 ? "bg-emerald-500/10" : cet < 10 ? "bg-amber-500/10" : "bg-red-500/10";

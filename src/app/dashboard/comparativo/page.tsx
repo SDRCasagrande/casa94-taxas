@@ -185,7 +185,7 @@ export default function ComparativoPage() {
                 </div>
 
                 {/* Volume Cards — input R$ → calcula % */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                         { label: "Débito", value: volDebit, setter: setVolDebit, share: shareDebit, color: "emerald" },
                         { label: "Crédito", value: volCredit, setter: setVolCredit, share: shareCredit, color: "blue" },
@@ -334,7 +334,7 @@ export default function ComparativoPage() {
                         <p className="text-sm font-medium text-white/80 mb-1">
                             {economy > 0 ? "Economia com a Stone" : economy < 0 ? "Custo adicional na Stone" : "Custos Equivalentes"}
                         </p>
-                        <p className="text-4xl font-black tracking-tight">{formatCurrency(Math.abs(economy))}<span className="text-lg font-normal text-white/80">/mês</span></p>
+                        <p className="text-2xl sm:text-4xl font-black tracking-tight">{formatCurrency(Math.abs(economy))}<span className="text-base sm:text-lg font-normal text-white/80">/mês</span></p>
                     </div>
                 </div>
                 <div className="text-right">
