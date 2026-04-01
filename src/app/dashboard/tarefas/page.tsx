@@ -159,11 +159,9 @@ export default function TarefasPage() {
                     <button onClick={() => setSidebarFilter("starred")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "starred" ? "bg-amber-500/20 text-amber-500" : "bg-secondary text-muted-foreground"}`}>
                         <Star className="w-3.5 h-3.5" /> Estrela {totalStarred > 0 && <span className="opacity-70">{totalStarred}</span>}
                     </button>
-                    {assignedToMe.length > 0 && (
-                        <button onClick={() => setSidebarFilter("assigned")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "assigned" ? "bg-purple-500/20 text-purple-500" : "bg-secondary text-muted-foreground"}`}>
-                            <UserPlus className="w-3.5 h-3.5" /> Minhas
-                        </button>
-                    )}
+                    <button onClick={() => setSidebarFilter("assigned")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${sidebarFilter === "assigned" ? "bg-purple-500/20 text-purple-500" : "bg-secondary text-muted-foreground"}`}>
+                        <UserPlus className="w-3.5 h-3.5" /> Minhas {assignedToMe.filter(t => !t.completed).length > 0 && <span className="opacity-70">{assignedToMe.filter(t => !t.completed).length}</span>}
+                    </button>
                     {lists.map(l => (
                         <button key={l.id} onClick={() => setSidebarFilter("all")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-secondary text-muted-foreground">
                             {l.name} <span className="opacity-50">{l.tasks.filter(t => !t.completed).length}</span>
@@ -181,12 +179,10 @@ export default function TarefasPage() {
                         <Star className="w-4 h-4" /> Com estrela
                         {totalStarred > 0 && <span className="ml-auto text-[10px] opacity-70">{totalStarred}</span>}
                     </button>
-                    {assignedToMe.length > 0 && (
-                        <button onClick={() => setSidebarFilter("assigned")} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${sidebarFilter === "assigned" ? "bg-purple-500/20 text-purple-500" : "text-muted-foreground hover:bg-muted"}`}>
-                            <UserPlus className="w-4 h-4" /> Atribuídas a mim
-                            <span className="ml-auto text-[10px] opacity-70">{assignedToMe.filter(t => !t.completed).length}</span>
-                        </button>
-                    )}
+                    <button onClick={() => setSidebarFilter("assigned")} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${sidebarFilter === "assigned" ? "bg-purple-500/20 text-purple-500" : "text-muted-foreground hover:bg-muted"}`}>
+                        <UserPlus className="w-4 h-4" /> Minhas Tarefas
+                        <span className="ml-auto text-[10px] opacity-70">{assignedToMe.filter(t => !t.completed).length}</span>
+                    </button>
 
                     {/* Team Section */}
                     {teamMembers.length > 0 && (<>
@@ -470,6 +466,27 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                         <button onClick={() => { onUpdate({ starred: !task.starred }); }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${task.starred ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground hover:text-amber-500"}`}>
                             <Star className={`w-3.5 h-3.5 ${task.starred ? "fill-amber-500" : ""}`} /> {task.starred ? "Favorita" : "Favoritar"}
+                        </button>
+                        <button onClick={() => {
+                            const t = encodeURIComponent(title || task.title);
+                            const desc = encodeURIComponent(`${description || ""}\n\n— BitTask`);
+                            let url = `https://calendar.google.com/calendar/r/eventedit?text=${t}&details=${desc}`;
+                            if (date) {
+                                const d = date.replace(/-/g, "");
+                                if (time) {
+                                    const startTime = `${d}T${time.replace(":", "")}00`;
+                                    const endH = parseInt(time.split(":")[0]) + 1;
+                                    const endTime = `${d}T${String(endH).padStart(2, "0")}${time.split(":")[1]}00`;
+                                    url += `&dates=${startTime}/${endTime}`;
+                                } else {
+                                    url += `&dates=${d}/${d}`;
+                                }
+                            }
+                            window.open(url, "_blank");
+                            onUpdate({ scheduled: true });
+                        }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">
+                            <Calendar className="w-3.5 h-3.5" /> Agendar
                         </button>
                         <button onClick={() => { if (confirm("Excluir esta tarefa?")) onDelete(); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20">

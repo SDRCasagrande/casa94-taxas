@@ -31,9 +31,9 @@ export async function GET() {
             lists = [newList];
         }
 
-        // Also include tasks assigned TO this user from other lists
+        // Also include tasks assigned TO this user (from any list)
         const assignedTasks = await prisma.task.findMany({
-            where: { assigneeId: session.userId, list: { userId: { not: session.userId } } },
+            where: { assigneeId: session.userId },
             include: {
                 assignee: { select: { id: true, name: true, email: true } },
                 createdBy: { select: { id: true, name: true } },
