@@ -92,8 +92,11 @@ export default function ClientesPage() {
 
     function resetNew() { setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM(""); setFSeg(""); setFCD(""); setFDocMsg(""); setFDocOk(null); setFBrand("STONE"); setFSafra("M0"); }
 
-    async function handleCnpjFetch(data: { name?: string; fantasia?: string }) {
-        if (data.name && !fn.trim()) setFN(data.name);
+    async function handleCnpjFetch(data: { name?: string; fantasia?: string; telefone?: string; email?: string; endereco?: string; situacao?: string }) {
+        if (data.name && !fn.trim()) setFN(data.fantasia || data.name);
+        if (data.telefone && !fph.trim()) setFPH(data.telefone);
+        if (data.email && !fem.trim()) setFEM(data.email.toLowerCase());
+        if (data.situacao && !fseg.trim()) setFSeg(data.situacao);
     }
 
     async function handleSaveClient() {

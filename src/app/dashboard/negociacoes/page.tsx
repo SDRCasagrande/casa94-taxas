@@ -201,8 +201,10 @@ export default function NegociacoesPage() {
     // New client + negotiation
     function resetNewForm() { setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM(""); setFRates(defaultRates()); setFDateN(today()); setFNotes(""); setFAssignee(""); setFDocMsg(""); setFDocOk(null); }
 
-    async function handleCnpjFetch(data: { name?: string; fantasia?: string }) {
-        if (data.name && !fn.trim()) setFN(data.name);
+    async function handleCnpjFetch(data: { name?: string; fantasia?: string; telefone?: string; email?: string }) {
+        if (data.name && !fn.trim()) setFN(data.fantasia || data.name);
+        if (data.telefone && !fph.trim()) setFPH(data.telefone);
+        if (data.email && !fem.trim()) setFEM(data.email.toLowerCase());
     }
 
     async function handleSaveClient() {

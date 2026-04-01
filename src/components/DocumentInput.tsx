@@ -8,7 +8,7 @@ interface DocumentInputProps {
     value: string;
     onChange: (formatted: string) => void;
     onValidation?: (result: { valido: boolean; tipo: "cpf" | "cnpj" | null; mensagem: string }) => void;
-    onCNPJData?: (data: { name?: string; fantasia?: string }) => void;
+    onCNPJData?: (data: { name?: string; fantasia?: string; telefone?: string; email?: string; endereco?: string; situacao?: string }) => void;
     allowBypass?: boolean;
     autoFetchCNPJ?: boolean;
     placeholder?: string;
@@ -60,7 +60,14 @@ export function DocumentInput({
             const res = await fetch(`/api/cnpj?cnpj=${clean}`);
             if (res.ok) {
                 const data = await res.json();
-                onCNPJData({ name: data.razao_social || data.name, fantasia: data.nome_fantasia || data.fantasia });
+                onCNPJData({
+                    name: data.razaoSocial || data.razao_social || data.name,
+                    fantasia: data.nomeFantasia || data.nome_fantasia || data.fantasia,
+                    telefone: data.telefone,
+                    email: data.email,
+                    endereco: data.endereco,
+                    situacao: data.situacao,
+                });
             }
         } catch { /* silent */ }
         setFetching(false);
