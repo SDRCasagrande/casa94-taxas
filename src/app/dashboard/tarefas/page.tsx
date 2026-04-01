@@ -6,8 +6,9 @@ import {
     Star, ChevronLeft, ChevronRight, ListTodo, CalendarDays,
     ExternalLink, MoreVertical, ChevronDown, Loader2, UserPlus,
     Pencil, SortAsc, Copy, Check, X, Users, MessageSquare,
-    AlertTriangle, Flag, Clock
+    AlertTriangle, Flag, Clock, Columns3
 } from "lucide-react";
+import KanbanBoard from "@/components/KanbanBoard";
 
 interface UserOption { id: string; name: string; email: string }
 interface TaskData {
@@ -44,7 +45,7 @@ export default function TarefasPage() {
     const [users, setUsers] = useState<UserOption[]>([]);
     const [currentUserId, setCurrentUserId] = useState("");
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState<"board" | "calendar">("board");
+    const [view, setView] = useState<"board" | "calendar" | "kanban">("board");
     const [showNewList, setShowNewList] = useState(false);
     const [newListName, setNewListName] = useState("");
     const [calMonth, setCalMonth] = useState(new Date().getMonth());
@@ -144,6 +145,7 @@ export default function TarefasPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={() => setView("board")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === "board" ? "bg-[#00A868]/10 text-[#00A868]" : "text-muted-foreground hover:bg-muted"}`}><ListTodo className="w-3.5 h-3.5" /> Board</button>
+                    <button onClick={() => setView("kanban")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === "kanban" ? "bg-[#00A868]/10 text-[#00A868]" : "text-muted-foreground hover:bg-muted"}`}><Columns3 className="w-3.5 h-3.5" /> Kanban</button>
                     <button onClick={() => setView("calendar")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === "calendar" ? "bg-[#00A868]/10 text-[#00A868]" : "text-muted-foreground hover:bg-muted"}`}><CalendarDays className="w-3.5 h-3.5" /> Calendário</button>
                 </div>
             </div>
@@ -222,7 +224,7 @@ export default function TarefasPage() {
                 </div>
 
                 {/* Main */}
-                {view === "board" ? (
+                {view === "board" && (
                     <div className="flex-1 overflow-x-auto">
                         <div className="flex gap-4 min-h-full pb-4" style={{ minWidth: `${Math.max(lists.length + 1, 2) * 320}px` }}>
                             {sidebarFilter === "starred" && (
@@ -280,7 +282,18 @@ export default function TarefasPage() {
                             )}
                         </div>
                     </div>
-                ) : (
+                )}
+
+                {view === "kanban" && (
+                    <KanbanBoard
+                        tasks={allTasks}
+                        onToggle={(id) => { const t = allTasks.find(x => x.id === id); if (t) updateTask(id, { completed: !t.completed }); }}
+                        onUpdate={(id, data) => updateTask(id, data)}
+                        onSelect={setDetailTask}
+                    />
+                )}
+
+                {view === "calendar" && (
                     <div className="flex-1 overflow-auto">
                         <div className="card-elevated overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
