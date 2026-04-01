@@ -337,13 +337,13 @@ export default function NegociacoesPage() {
             {view === "board" ? (
                 /* ═══ KANBAN BOARD ═══ */
                 <div className="flex-1 overflow-x-auto -mx-4 lg:-mx-6 px-4 lg:px-6">
-                    <div className="flex gap-3 min-h-[calc(100vh-220px)] pb-4 pr-4" style={{ minWidth: `${STAGES.length * 280}px` }}>
+                    <div className="flex flex-col lg:flex-row gap-3 min-h-0 lg:min-h-[calc(100vh-220px)] pb-4 lg:pr-4" style={{ minWidth: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${STAGES.length * 280}px` : 'auto' }}>
                         {STAGES.map(stage => {
                             const stageNegs = filtered.filter(n => normalizeStatus(n.status) === stage.id);
                             const isDragOver = dragOverStage === stage.id;
                             return (
                                 <div key={stage.id}
-                                    className={`w-[268px] shrink-0 flex flex-col rounded-2xl transition-all ${isDragOver ? "ring-2 ring-blue-500/50 bg-blue-500/5" : "bg-card/50"}`}
+                                    className={`lg:w-[268px] lg:shrink-0 flex flex-col rounded-2xl transition-all ${isDragOver ? "ring-2 ring-blue-500/50 bg-blue-500/5" : "bg-card/50"}`}
                                     onDragOver={e => onDragOver(e, stage.id)} onDragLeave={onDragLeave} onDrop={() => onDrop(stage.id)}>
                                     {/* Column Header */}
                                     <div className="flex items-center justify-between px-3 py-2.5 shrink-0">

@@ -226,7 +226,7 @@ export default function TarefasPage() {
                 {/* Main */}
                 {view === "board" && (
                     <div className="flex-1 overflow-x-auto">
-                        <div className="flex gap-4 min-h-full pb-4" style={{ minWidth: `${Math.max(lists.length + 1, 2) * 320}px` }}>
+                        <div className="flex flex-col lg:flex-row gap-4 min-h-full pb-4" style={{ minWidth: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${Math.max(lists.length + 1, 2) * 320}px` : 'auto' }}>
                             {sidebarFilter === "starred" && (
                                 <ListColumn key="starred" list={{ id: "starred", name: "Com estrela", tasks: allTasks.filter(t => t.starred) }} users={users}
                                     onAdd={() => {}} onToggle={(id) => { const t = allTasks.find(x => x.id === id); if (t) updateTask(id, { completed: !t.completed }); }}

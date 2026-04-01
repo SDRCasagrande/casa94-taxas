@@ -147,8 +147,8 @@ export default function KanbanBoard({ tasks, onToggle, onUpdate, onSelect }: Kan
 
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="flex-1 overflow-x-auto">
-                <div className="flex gap-3 min-w-[768px] h-full">
+            <div className="flex-1 overflow-x-auto lg:overflow-x-auto">
+                <div className="flex flex-col lg:flex-row gap-3 lg:min-w-[768px] h-full">
                     {COLUMNS.map(col => {
                         const colTasks = columnTasks[col.key] || [];
                         return (
