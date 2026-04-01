@@ -45,7 +45,7 @@ function initials(name: string) { return name.split(" ").map(n => n[0]).slice(0,
 
 /* ═══ GOOGLE CALENDAR ═══ */
 function gcalLink(neg: { clientName: string; clientPhone?: string; stoneCode?: string; cnpj?: string; dateNeg: string; rates: RateSnapshot; notes?: string; status: string }) {
-    const title = `Negociação Stone — ${neg.clientName}`;
+    const title = `Negociação — ${neg.clientName}`;
     // Schedule follow-up for 3 days from now or use negotiation date
     const followUp = new Date();
     followUp.setDate(followUp.getDate() + 3);

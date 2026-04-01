@@ -247,7 +247,7 @@ export default function ConfiguracoesPage() {
                             </div>
                             <div className="text-center">
                                 <p className="text-[10px] text-muted-foreground uppercase font-bold">Direção</p>
-                                <p className="text-xs font-bold text-foreground">BitTaxas → Google</p>
+                                <p className="text-xs font-bold text-foreground">BitTask → Google</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-[10px] text-muted-foreground uppercase font-bold">Eventos</p>

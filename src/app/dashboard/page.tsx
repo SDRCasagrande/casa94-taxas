@@ -259,7 +259,7 @@ export default function DashboardPage() {
                             { href: "/dashboard/clientes", label: "Carteira", icon: Briefcase, desc: "Gerenciar clientes e TPV" },
                             { href: "/dashboard/negociacoes", label: "Pipeline", icon: Handshake, desc: "Kanban de negociações" },
                             { href: "/dashboard/cet", label: "Calcular CET", icon: Calculator, desc: "Custo efetivo por parcela" },
-                            { href: "/dashboard/comparativo", label: "Comparação", icon: GitCompare, desc: "Stone vs concorrente" },
+                            { href: "/dashboard/comparativo", label: "Comparação", icon: GitCompare, desc: "Suas taxas vs concorrente" },
                         ].map((a) => (
                             <Link key={a.href} href={a.href}
                                 className="group flex items-start gap-3 p-3 rounded-xl bg-secondary/50 hover:bg-secondary border border-transparent hover:border-[#00A868]/20 transition-all touch-target">
