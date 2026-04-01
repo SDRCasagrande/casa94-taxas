@@ -172,19 +172,7 @@
   pointer-events: none;
 }
 
-/* ═══ Card Styles (Premium Clean) ═══ */
-.card-elevated {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: box-shadow 0.2s, border-color 0.2s;
-}
-
-.card-elevated:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  border-color: rgba(0, 168, 104, 0.2);
-}
+/* Card styles now defined at bottom of file with premium hover */
 
 /* ═══ Stone Green Glow (Subtle) ═══ */
 .glow-green {
@@ -305,4 +293,65 @@ textarea:focus {
   background: #ecfdf5;
   color: #059669;
   border: 1px solid rgba(5, 150, 105, 0.15);
+}
+
+/* ═══ Premium Transitions ═══ */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2s ease-in-out infinite;
+}
+
+/* ═══ Card Hover Enhancement ═══ */
+.card-elevated {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+}
+
+.card-elevated:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 168, 104, 0.15);
+}
+
+/* ═══ Priority Tag Colors ═══ */
+.priority-high { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.15); }
+.priority-medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.15); }
+.priority-low { background: rgba(0, 168, 104, 0.1); color: #00A868; border: 1px solid rgba(0, 168, 104, 0.15); }
+
+/* ═══ Focus-visible for accessibility ═══ */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--stone-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ═══ Selection color ═══ */
+::selection {
+  background: rgba(0, 168, 104, 0.2);
+  color: inherit;
 }

@@ -365,53 +365,73 @@ export default function NegociacoesPage() {
                                             <div key={neg.id} draggable
                                                 onDragStart={() => onDragStart(neg.id)}
                                                 className={`card-elevated rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#00A868]/30 transition-all group overflow-hidden ${dragId === neg.id ? "opacity-50 scale-95" : ""}`}>
-                                                <div className="flex items-start justify-between gap-1 mb-1">
-                                                    <p className="text-sm font-semibold text-foreground leading-tight truncate">{neg.clientName}</p>
-                                                    <GripVertical className="w-3.5 h-3.5 text-muted-foreground/30 shrink-0 mt-0.5" />
+                                                {/* Client + Drag */}
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-8 h-8 rounded-lg bg-[#00A868]/10 flex items-center justify-center shrink-0">
+                                                        <span className="text-xs font-bold text-[#00A868]">{initials(neg.clientName)}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-foreground leading-tight truncate">{neg.clientName}</p>
+                                                        {neg.stoneCode && <p className="text-[10px] text-muted-foreground/70">SC: {neg.stoneCode}</p>}
+                                                    </div>
+                                                    <GripVertical className="w-3.5 h-3.5 text-muted-foreground/20 shrink-0" />
                                                 </div>
-                                                {neg.stoneCode && <p className="text-[11px] text-muted-foreground mb-1.5 truncate">SC: {neg.stoneCode}</p>}
 
-                                                {/* Mini rates */}
-                                                <div className="grid grid-cols-3 gap-1 mb-2">
+                                                {/* Rates row */}
+                                                <div className="flex items-center gap-0.5 mb-2">
                                                     {[{ l: "Déb", v: neg.rates.debit }, { l: "1x", v: neg.rates.credit1x }, { l: "PIX", v: neg.rates.pix }].map(r => (
-                                                        <div key={r.l} className="bg-secondary/60 rounded-md px-1.5 py-1 text-center overflow-hidden">
-                                                            <p className="text-[10px] text-muted-foreground">{r.l}</p>
-                                                            <p className="text-xs font-bold text-foreground">{formatPercent(r.v)}</p>
+                                                        <div key={r.l} className="flex-1 bg-secondary/60 rounded-lg px-1.5 py-1 text-center">
+                                                            <p className="text-[9px] text-muted-foreground/60 uppercase">{r.l}</p>
+                                                            <p className="text-[11px] font-bold text-foreground">{formatPercent(r.v)}</p>
                                                         </div>
                                                     ))}
                                                 </div>
 
-                                                {/* Meta badges */}
-                                                <div className="flex items-center gap-1 flex-wrap">
-                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 bg-muted/50 px-1.5 py-0.5 rounded">
+                                                {/* Meta: date + assignee */}
+                                                <div className="flex items-center justify-between gap-1">
+                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                                                         <Calendar className="w-2.5 h-2.5" /> {fmtDate(neg.dateNeg)}
                                                     </span>
-                                                    {neg.assignee && (
-                                                        <span className="text-[10px] text-purple-500 flex items-center gap-0.5 bg-purple-500/10 px-1.5 py-0.5 rounded font-medium truncate max-w-[90px]">
-                                                            <User className="w-2.5 h-2.5 shrink-0" /> {neg.assignee.name.split(" ")[0]}
-                                                        </span>
-                                                    )}
+                                                    <div className="flex items-center gap-1">
+                                                        {neg.assignee ? (
+                                                            <span className="flex items-center gap-1 text-[10px] font-medium text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded-full">
+                                                                <div className="w-3.5 h-3.5 rounded-full bg-purple-500 flex items-center justify-center text-[7px] text-white font-bold shrink-0">{initials(neg.assignee.name)}</div>
+                                                                {neg.assignee.name.split(" ")[0]}
+                                                            </span>
+                                                        ) : (
+                                                            <select value="" onChange={e => assignNeg(neg.id, e.target.value || null)}
+                                                                className="text-[10px] bg-transparent text-muted-foreground/50 border-none p-0 focus:outline-none cursor-pointer w-16">
+                                                                <option value="">Atribuir</option>
+                                                                {users.map(u => <option key={u.id} value={u.id}>{u.name.split(" ")[0]}</option>)}
+                                                            </select>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                {/* Hover actions */}
-                                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50 h-0 overflow-hidden opacity-0 group-hover:h-auto group-hover:opacity-100 transition-all">
-                                                    <button onClick={() => shareWhatsApp(neg)} className="p-1 rounded-md text-[10px] font-medium text-[#00A868] hover:bg-[#00A868]/10 flex items-center gap-0.5" title="WhatsApp">
+                                                {/* Quick actions — always visible on mobile, hover on desktop */}
+                                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/40">
+                                                    <button onClick={() => shareWhatsApp(neg)} className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-[#00A868] bg-[#00A868]/8 hover:bg-[#00A868]/15 flex items-center justify-center gap-0.5 transition-colors" title="WhatsApp">
                                                         <MessageSquare className="w-3 h-3" /> Zap
                                                     </button>
-                                                    <a href={gcalLink(neg)} target="_blank" rel="noopener noreferrer" className="p-1 rounded-md text-[10px] font-medium text-blue-500 hover:bg-blue-500/10 flex items-center gap-0.5" title="Agendar">
-                                                        <CalendarPlus className="w-3 h-3" /> Cal
+                                                    <a href={gcalLink(neg)} target="_blank" rel="noopener noreferrer" className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-blue-500 bg-blue-500/8 hover:bg-blue-500/15 flex items-center justify-center gap-0.5 transition-colors" title="Calendário">
+                                                        <CalendarPlus className="w-3 h-3" /> Agendar
                                                     </a>
-                                                    <select value={neg.assignee?.id || ""} onChange={e => assignNeg(neg.id, e.target.value || null)}
-                                                        className="ml-auto text-[10px] bg-transparent border border-border rounded-md px-1 py-0.5 text-muted-foreground focus:outline-none max-w-[72px] truncate">
-                                                        <option value="">Atribuir</option>
-                                                        {users.map(u => <option key={u.id} value={u.id}>{u.name.split(" ")[0]}</option>)}
-                                                    </select>
-                                                    <button onClick={() => deleteNeg(neg.id)} className="p-1 rounded-md text-muted-foreground hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
+                                                    {normalizeStatus(neg.status) !== "fechado" && normalizeStatus(neg.status) !== "recusado" && (
+                                                        <button onClick={() => {
+                                                            const idx = STAGES.findIndex(s => s.id === normalizeStatus(neg.status));
+                                                            if (idx < STAGES.length - 2) changeStage(neg.id, STAGES[idx + 1].id);
+                                                        }} className="py-1.5 px-2 rounded-lg text-[10px] font-semibold text-foreground bg-secondary hover:bg-muted flex items-center justify-center gap-0.5 transition-colors" title="Avançar">
+                                                            <ArrowRight className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => deleteNeg(neg.id)} className="py-1.5 px-2 rounded-lg text-[10px] font-semibold text-red-400/60 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Excluir">
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
                                                 </div>
 
                                                 {/* Stage timestamp */}
                                                 {neg.stageHistory && neg.stageHistory.length > 0 && (
-                                                    <p className="text-[10px] text-muted-foreground/50 mt-1.5 flex items-center gap-0.5 truncate">
+                                                    <p className="text-[9px] text-muted-foreground/40 mt-1.5 flex items-center gap-0.5 truncate">
                                                         <Clock className="w-2.5 h-2.5 shrink-0" />
                                                         {fmtDateTime(neg.stageHistory[neg.stageHistory.length - 1].timestamp)}
                                                         {neg.stageHistory[neg.stageHistory.length - 1].userName && ` por ${neg.stageHistory[neg.stageHistory.length - 1].userName}`}
