@@ -57,7 +57,7 @@ function gcalLink(neg: { clientName: string; clientPhone?: string; stoneCode?: s
     if (neg.clientPhone) desc += `Tel: ${neg.clientPhone}\n`;
     desc += `\nTaxas: Déb ${formatPercent(neg.rates.debit)} | 1x ${formatPercent(neg.rates.credit1x)} | PIX ${formatPercent(neg.rates.pix)}\n`;
     if (neg.notes) desc += `\nObs: ${neg.notes}\n`;
-    desc += `\n— BitKaiser Taxas`;
+    desc += `\n— BitTask`;
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}&details=${encodeURIComponent(desc)}`;
 }
 
@@ -229,7 +229,7 @@ export default function NegociacoesPage() {
         txt += `PIX: ${formatPercent(neg.rates.pix)}\n`;
         txt += `RAV: ${formatPercent(neg.rates.ravRate ?? neg.rates.rav)}\n`;
         if (neg.notes) txt += `\nObs: ${neg.notes}\n`;
-        txt += `\n— BitKaiser Taxas`;
+        txt += `\n— BitTask`;
         window.open(`https://wa.me/${neg.clientPhone?.replace(/\D/g, "") || ""}?text=${encodeURIComponent(txt)}`, "_blank");
     }
 

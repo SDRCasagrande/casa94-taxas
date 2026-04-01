@@ -4,7 +4,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 export const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
-export const FROM_EMAIL = 'BitKaiser Taxas <alertas@bkaiser.com.br>';
+export const FROM_EMAIL = 'BitTask <alertas@bkaiser.com.br>';
 
 export async function sendRenegotiationAlert(
     to: string,
@@ -105,10 +105,10 @@ export async function sendRenegotiationAlert(
         <!-- Footer -->
         <tr><td style="padding-top:24px;text-align:center;">
           <p style="color:#475569;font-size:12px;margin:0;">
-            BitKaiser Taxas — Simulador premium de taxas de maquininhas
+            BitTask — Simulador premium de taxas de maquininhas
           </p>
           <p style="color:#334155;font-size:11px;margin:8px 0 0;">
-            Você recebeu este email porque está cadastrado no sistema BitKaiser Taxas.
+            Você recebeu este email porque está cadastrado no sistema BitTask.
           </p>
         </td></tr>
 

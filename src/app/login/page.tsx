@@ -75,11 +75,11 @@ export default function LoginPage() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#00A868] shadow-lg glow-green mb-4">
-                        <span className="text-3xl font-black text-white">BK</span>
+                        <span className="text-3xl font-black text-white">BT</span>
                     </div>
-                    <h1 className="text-3xl font-bold gradient-text">BitKaiser Taxas</h1>
+                    <h1 className="text-3xl font-bold gradient-text">BitTask</h1>
                     <p className="text-muted-foreground mt-2 text-sm">
-                        Simulador premium de taxas de maquininhas
+                        Gestão de negociações & propostas para agentes Stone
                     </p>
                 </div>
 

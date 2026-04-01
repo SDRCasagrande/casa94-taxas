@@ -75,7 +75,7 @@ export default function DashboardPage() {
                         <h1 className="text-xl font-bold">
                             {userName ? `Olá, ${userName.split(" ")[0]}!` : "Bem-vindo!"}
                         </h1>
-                        <p className="text-white/70 text-sm mt-0.5">Painel de controle BitKaiser Taxas</p>
+                        <p className="text-white/70 text-sm mt-0.5">Painel de controle BitTask</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {(metrics?.pendingTasks || 0) > 0 && (

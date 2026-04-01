@@ -1,5 +1,5 @@
 /**
- * BitKaiser Taxas — CET Calculation Engine
+ * BitTask — CET Calculation Engine
  * 
  * CET = 1 - (((100 * (1 - MDR)) * (1 - (RAV * mediaMeses))) / 100)
  * mediaMeses = (parcelas + 1) / 2

@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BitKaiser Taxas — Gestão de Taxas & Propostas",
+  title: "BitTask — Gestão de Negociações & Propostas Stone",
   description: "Plataforma profissional de gestão de carteira, simulação de taxas e propostas comerciais para agentes Stone.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BitKaiser",
+    title: "BitTask",
   },
 };
 

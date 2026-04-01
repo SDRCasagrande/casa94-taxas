@@ -114,7 +114,7 @@ export default function TarefasPage() {
 
     const scheduleToCalendar = (task: TaskData) => {
         const title = encodeURIComponent(task.title);
-        let url = `https://calendar.google.com/calendar/r/eventedit?text=${title}&details=${encodeURIComponent("Tarefa BitKaiser")}`;
+        let url = `https://calendar.google.com/calendar/r/eventedit?text=${title}&details=${encodeURIComponent("Tarefa BitTask")}`;
         if (task.date) { const d = task.date.replace(/-/g, ""); url += task.time ? `&dates=${d}T${task.time.replace(":", "")}00/${d}T${task.time.replace(":", "")}00` : `&dates=${d}/${d}`; }
         window.open(url, "_blank");
         updateTask(task.id, { scheduled: true });

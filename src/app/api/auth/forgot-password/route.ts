@@ -37,7 +37,7 @@ export async function POST(request: Request) {
             await resend.emails.send({
                 from: FROM_EMAIL,
                 to: toEmail,
-                subject: '🔒 Sua nova senha — BitKaiser Taxas',
+                subject: '🔒 Sua nova senha — BitTask',
                 html: `
 <!DOCTYPE html>
 <html>
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           </table>
         </td></tr>
         <tr><td style="padding-top:24px;text-align:center;">
-          <p style="color:#475569;font-size:12px;margin:0;">BitKaiser Taxas — Simulador premium de taxas</p>
+          <p style="color:#475569;font-size:12px;margin:0;">BitTask — Simulador premium de taxas</p>
         </td></tr>
       </table>
     </td></tr>

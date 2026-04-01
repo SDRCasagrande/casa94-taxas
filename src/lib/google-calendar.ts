@@ -94,7 +94,7 @@ export async function createCalendarEvent(userId: string, task: {
 
             event = {
                 summary: `📋 ${task.title}`,
-                description: `${task.description || ''}\n\n— BitKaiser Taxas (auto-sync)`.trim(),
+                description: `${task.description || ''}\n\n— BitTask (auto-sync)`.trim(),
                 start: { dateTime: startDateTime, timeZone: 'America/Sao_Paulo' },
                 end: { dateTime: endDateTime, timeZone: 'America/Sao_Paulo' },
                 reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 30 }] },
@@ -103,7 +103,7 @@ export async function createCalendarEvent(userId: string, task: {
             // All-day event
             event = {
                 summary: `📋 ${task.title}`,
-                description: `${task.description || ''}\n\n— BitKaiser Taxas (auto-sync)`.trim(),
+                description: `${task.description || ''}\n\n— BitTask (auto-sync)`.trim(),
                 start: { date: startDate },
                 end: { date: startDate },
                 reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 60 }] },
@@ -146,7 +146,7 @@ export async function updateCalendarEvent(userId: string, eventId: string, task:
 
         const update: any = {
             summary: `📋 ${task.title}`,
-            description: `${task.description || ''}\n\n— BitKaiser Taxas (auto-sync)`.trim(),
+            description: `${task.description || ''}\n\n— BitTask (auto-sync)`.trim(),
         };
 
         if (task.time) {

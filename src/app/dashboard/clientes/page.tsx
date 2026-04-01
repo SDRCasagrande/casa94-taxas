@@ -152,7 +152,7 @@ export default function ClientesPage() {
             txt += `Comissão Franquia (30%): ${fmtMoney(comm.franchise)}\n`;
             txt += `Comissão Agente (10%): ${fmtMoney(comm.agent)}\n`;
         }
-        txt += `\n— BitKaiser Taxas`;
+        txt += `\n— BitTask`;
         window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
     }
 

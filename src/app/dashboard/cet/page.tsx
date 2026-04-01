@@ -254,7 +254,7 @@ tr:nth-child(even){background:#fafafa}
         });
         html += `</div></div></div>`;
 
-        html += `<div class="footer"><span>Gerado em ${new Date().toLocaleDateString("pt-BR")} \u2014 BitKaiser Taxas</span><span>${ravTipo === "pontual" ? "CET = MDR (sem antecipa\u00e7\u00e3o)" : `CET = MDR + RAV ${formatPercent(ravAuto)}`}</span></div>`;
+        html += `<div class="footer"><span>Gerado em ${new Date().toLocaleDateString("pt-BR")} \u2014 BitTask</span><span>${ravTipo === "pontual" ? "CET = MDR (sem antecipa\u00e7\u00e3o)" : `CET = MDR + RAV ${formatPercent(ravAuto)}`}</span></div>`;
         html += `</body></html>`;
         w.document.write(html); w.document.close(); w.print();
     }
@@ -394,34 +394,42 @@ tr:nth-child(even){background:#fafafa}
                             </div>
                         </button>
                         <div className={`px-3 pb-3 border-t border-border/30 space-y-2 ${openSection === "taxas" ? "block" : "hidden lg:block"}`}>
-                            <div className="flex gap-1 mt-2 flex-wrap items-center">
+                            {/* Brand Toggle Grid */}
+                            <div className="space-y-1.5 mt-2">
                                 {ALL_BRANDS.map((b) => (
-                                    <div key={b} className="relative group">
-                                        <button onClick={() => { setActiveBrand(b); if (!enabledBrands[b]) toggleBrand(b); }}
-                                            className={`px-2 py-1 text-[10px] rounded-lg font-bold transition-all ${activeBrand === b
-                                                ? "bg-[#00A868] text-white shadow-sm"
-                                                : enabledBrands[b]
-                                                    ? "bg-secondary text-foreground hover:bg-muted"
-                                                    : "bg-secondary/50 text-muted-foreground/50 line-through hover:bg-muted"}`}>
-                                            {b}
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); toggleBrand(b); }}
-                                            className={`absolute -top-1.5 -left-1 w-3.5 h-3.5 rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center ${enabledBrands[b] ? "bg-[#00A868] text-white" : "bg-red-500 text-white"}`}>
-                                            {enabledBrands[b] ? "✓" : "✕"}
-                                        </button>
+                                    <div key={b} className={`flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all cursor-pointer ${
+                                        activeBrand === b ? "bg-[#00A868]/10 border border-[#00A868]/20" : "bg-secondary/50 hover:bg-secondary"
+                                    }`}
+                                        onClick={() => { setActiveBrand(b); if (!enabledBrands[b]) toggleBrand(b); }}>
+                                        {/* Toggle Switch */}
+                                        <div onClick={(e) => { e.stopPropagation(); toggleBrand(b); }}
+                                            className={`relative w-8 h-[18px] rounded-full transition-colors cursor-pointer shrink-0 ${
+                                                enabledBrands[b] ? 'bg-[#00A868]' : 'bg-gray-300'}`}>
+                                            <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${
+                                                enabledBrands[b] ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
+                                        </div>
+                                        {/* Brand Name */}
+                                        <span className={`text-xs font-bold flex-1 ${
+                                            enabledBrands[b] ? "text-foreground" : "text-muted-foreground/50 line-through"
+                                        }`}>{b}</span>
+                                        {/* Active indicator */}
+                                        {activeBrand === b && <span className="text-[9px] text-[#00A868] font-bold bg-[#00A868]/10 px-1.5 py-0.5 rounded-full">editando</span>}
+                                        {/* Delete custom brand */}
                                         {!BRAND_PRESETS[b] && (
-                                            <button onClick={() => {
+                                            <button onClick={(e) => {
+                                                e.stopPropagation();
                                                 const next = { ...brandRates }; delete next[b];
                                                 setBrandRates(next);
                                                 const ne = { ...enabledBrands }; delete ne[b];
                                                 setEnabledBrands(ne);
                                                 if (activeBrand === b) setActiveBrand(Object.keys(next)[0]);
-                                            }} className="absolute -top-1.5 -right-1 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center">x</button>
+                                            }} className="w-5 h-5 rounded-md bg-red-500/10 text-red-500 flex items-center justify-center text-[10px] hover:bg-red-500/20 transition-colors shrink-0">✕</button>
                                         )}
                                     </div>
                                 ))}
+                                {/* Add Brand */}
                                 {showNewBrand ? (
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#00A868]/5 border border-[#00A868]/20">
                                         <input type="text" value={newBrandInput} autoFocus
                                             onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
                                             onKeyDown={(e) => {
@@ -436,8 +444,8 @@ tr:nth-child(even){background:#fafafa}
                                                 }
                                                 if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
                                             }}
-                                            placeholder="NOME"
-                                            className="w-20 px-2 py-1 text-[10px] rounded-lg bg-secondary border border-[#00A868]/40 text-foreground focus:ring-1 focus:ring-[#00A868]" />
+                                            placeholder="Nome da bandeira"
+                                            className="flex-1 px-2.5 py-1.5 text-xs rounded-lg bg-white border border-[#00A868]/30 text-foreground focus:ring-1 focus:ring-[#00A868]" />
                                         <button onClick={() => {
                                             const name = newBrandInput.trim();
                                             if (name && !brandRates[name]) {
@@ -446,12 +454,15 @@ tr:nth-child(even){background:#fafafa}
                                                 setActiveBrand(name);
                                             }
                                             setNewBrandInput(""); setShowNewBrand(false);
-                                        }} className="text-xs text-[#00A868] font-bold">OK</button>
-                                        <button onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }} className="text-xs text-red-400 font-bold">✕</button>
+                                        }} className="px-3 py-1.5 text-xs rounded-lg bg-[#00A868] text-white font-bold hover:bg-[#008f58] transition-colors">Salvar</button>
+                                        <button onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }}
+                                            className="px-2 py-1.5 text-xs rounded-lg bg-secondary text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
                                     </div>
                                 ) : (
                                     <button onClick={() => setShowNewBrand(true)}
-                                        className="px-2 py-1 text-[10px] rounded-lg font-bold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20">+</button>
+                                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 transition-colors border border-dashed border-[#00A868]/20">
+                                        <span className="text-sm">+</span> Adicionar Bandeira
+                                    </button>
                                 )}
                             </div>
                             <div className="grid grid-cols-2 gap-2">

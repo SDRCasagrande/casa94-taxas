@@ -82,11 +82,11 @@ export default function DashboardLayout({
                 <div className="h-16 flex items-center px-5 border-b border-border shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-[#00A868] flex items-center justify-center shadow-md shadow-[#00A868]/20">
-                            <span className="text-sm font-black text-white">BK</span>
+                            <span className="text-sm font-black text-white">BT</span>
                         </div>
                         <div>
-                            <h1 className="font-bold text-sm text-foreground leading-tight">BitKaiser</h1>
-                            <p className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">Taxas & Propostas</p>
+                            <h1 className="font-bold text-sm text-foreground leading-tight">BitTask</h1>
+                            <p className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">Gestão & Propostas</p>
                         </div>
                     </div>
                 </div>
@@ -192,16 +192,16 @@ export default function DashboardLayout({
                         {/* Mobile: Logo only */}
                         <div className="lg:hidden flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-[#00A868] flex items-center justify-center shadow-sm shadow-[#00A868]/20">
-                                <span className="text-xs font-black text-white">BK</span>
+                                <span className="text-xs font-black text-white">BT</span>
                             </div>
                             <div>
-                                <h2 className="font-bold text-sm text-foreground leading-tight">{currentNav?.label || "BitKaiser"}</h2>
+                                <h2 className="font-bold text-sm text-foreground leading-tight">{currentNav?.label || "BitTask"}</h2>
                             </div>
                         </div>
 
                         {/* Desktop: Breadcrumb */}
                         <div className="hidden lg:flex items-center gap-2 text-sm">
-                            <span className="text-muted-foreground font-medium">BitKaiser</span>
+                            <span className="text-muted-foreground font-medium">BitTask</span>
                             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
                             <h2 className="font-semibold text-foreground flex items-center gap-2">
                                 {currentNav && <currentNav.icon className="w-4 h-4 text-[#00A868]" />}

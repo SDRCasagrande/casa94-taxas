@@ -242,7 +242,7 @@ export function exportPDF(data: ProposalData) {
     // Footer
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Proposta gerada em ${new Date().toLocaleDateString("pt-BR")} — BitKaiser Taxas`, w / 2, h - 5, { align: "center" });
+    doc.text(`Proposta gerada em ${new Date().toLocaleDateString("pt-BR")} — BitTask`, w / 2, h - 5, { align: "center" });
 
     const filename = `Proposta_${(data.cliente.nome || "Stone").replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
     const blob = doc.output("blob");
