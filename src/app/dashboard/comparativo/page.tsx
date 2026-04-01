@@ -150,22 +150,20 @@ export default function ComparativoPage() {
     return (
         <div className="max-w-6xl mx-auto space-y-5">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#00A868] flex items-center justify-center shadow-lg shadow-[#00A868]/20 text-white">
-                        <Activity className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-[#00A868] flex items-center justify-center text-white shadow-lg shadow-[#00A868]/20">
+                        <Activity className="w-4 h-4" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-foreground">Comparação de Taxas</h1>
-                        <p className="text-sm text-muted-foreground">Stone vs {competitorInfo.name}</p>
+                        <h1 className="text-lg font-bold text-foreground">Comparação de Taxas</h1>
+                        <p className="text-xs text-muted-foreground">Stone vs {competitorInfo.name} · TPV {formatCurrency(tpv)}</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={pullCET}
-                        className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 transition-colors">
-                        <Download className="w-4 h-4" /> Puxar CET
-                    </button>
-                </div>
+                <button onClick={pullCET}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 transition-colors font-semibold">
+                    <Download className="w-3.5 h-3.5" /> Puxar CET
+                </button>
             </div>
 
             {/* Volume por VALOR + Concorrente */}
@@ -321,27 +319,37 @@ export default function ComparativoPage() {
                 </div>
             </div>
 
-            {/* Economy */}
-            <div className={`rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center text-white shadow-lg ${economy > 0 ? "bg-[#00A868] glow-green" :
+            {/* Economy Result */}
+            <div className={`rounded-2xl overflow-hidden shadow-lg ${economy > 0 ? "bg-[#00A868] glow-green" :
                 economy < 0 ? "bg-gradient-to-r from-amber-600 to-amber-500" :
                     "bg-gradient-to-r from-slate-600 to-slate-500"
                 }`}>
-                <div className="flex items-center gap-4 mb-4 md:mb-0">
-                    <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                        {economy > 0 ? <TrendingDown className="w-7 h-7 text-white" /> : <TrendingUp className="w-7 h-7 text-white" />}
+                <div className="p-6 flex flex-col md:flex-row justify-between items-center text-white">
+                    <div className="flex items-center gap-4 mb-4 md:mb-0">
+                        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                            {economy > 0 ? <TrendingDown className="w-7 h-7 text-white" /> : <TrendingUp className="w-7 h-7 text-white" />}
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-medium text-white/80 mb-1">
+                                {economy > 0 ? "Economia com a Stone" : economy < 0 ? "Custo adicional na Stone" : "Custos Equivalentes"}
+                            </p>
+                            <p className="text-2xl sm:text-4xl font-black tracking-tight">{formatCurrency(Math.abs(economy))}<span className="text-base sm:text-lg font-normal text-white/80">/mês</span></p>
+                        </div>
                     </div>
-                    <div className="text-left">
-                        <p className="text-sm font-medium text-white/80 mb-1">
-                            {economy > 0 ? "Economia com a Stone" : economy < 0 ? "Custo adicional na Stone" : "Custos Equivalentes"}
-                        </p>
-                        <p className="text-2xl sm:text-4xl font-black tracking-tight">{formatCurrency(Math.abs(economy))}<span className="text-base sm:text-lg font-normal text-white/80">/mês</span></p>
+                    <div className="text-right">
+                        <p className="text-xl font-bold">{formatCurrency(Math.abs(economy) * 12)}<span className="text-sm font-normal text-white/80">/ano</span></p>
+                        {economy > 0 && compTotal > 0 && (
+                            <p className="text-xs text-white/60 mt-1">Redução de {formatPercent((economy / compTotal) * 100)} nos custos</p>
+                        )}
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-xl font-bold">{formatCurrency(Math.abs(economy) * 12)}<span className="text-sm font-normal text-white/80">/ano</span></p>
-                    {economy > 0 && compTotal > 0 && (
-                        <p className="text-xs text-white/60 mt-1">Redução de {formatPercent((economy / compTotal) * 100)} nos custos</p>
-                    )}
+                {/* Cost breakdown footer */}
+                <div className="bg-black/10 px-6 py-3 flex items-center justify-between text-white/90 text-xs">
+                    <div className="flex items-center gap-4">
+                        <span>Stone: <strong>{formatCurrency(stoneTotal)}</strong>/mês</span>
+                        <span>{competitorInfo.name}: <strong>{formatCurrency(compTotal)}</strong>/mês</span>
+                    </div>
+                    <span className="text-white/50">Taxas + Aluguel</span>
                 </div>
             </div>
         </div>
