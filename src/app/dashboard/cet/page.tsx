@@ -294,296 +294,331 @@ tr:nth-child(even){background:#fafafa}
         window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
     }
 
-    // Rate Input — imported from shared component (prevents focus loss)
+    // Collapsible state for mobile
+    const [openSection, setOpenSection] = useState<string>("taxas");
+    const toggleSection = (s: string) => setOpenSection(openSection === s ? "" : s);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-4">
+        <div className="max-w-7xl mx-auto space-y-3 pb-20 lg:pb-4">
             {/* Header */}
-            <div className="card-elevated p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1 w-full">
+            <div className="card-elevated p-3 sm:p-4">
+                <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-[#00A868]/10 border border-[#00A868]/10 flex items-center justify-center shrink-0">
                         <span className="text-[#00A868] text-sm font-black">CET</span>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                         <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)}
                             placeholder="Nome da Empresa / Cliente"
-                            className="w-full text-lg font-bold bg-transparent border-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0" />
-                        <p className="text-xs text-muted-foreground">Custo Efetivo Total por parcela e bandeira</p>
+                            className="w-full text-base sm:text-lg font-bold bg-transparent border-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0" />
+                        <p className="text-[10px] text-muted-foreground">Custo Efetivo Total por parcela e bandeira</p>
                     </div>
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
-                    <button onClick={shareWhatsApp} className="px-3 py-1.5 text-xs rounded-lg bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 font-medium transition-colors">WhatsApp</button>
-                    <button onClick={exportPDF} className="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-medium transition-colors">PDF</button>
-                    <button onClick={exportExcel} className="px-3 py-1.5 text-xs rounded-lg bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 font-medium transition-colors">Excel</button>
-                    <button onClick={handleReset} className="px-3 py-1.5 text-xs rounded-lg bg-secondary text-muted-foreground hover:bg-muted font-medium transition-colors">Resetar</button>
+                <div className="grid grid-cols-4 gap-1.5">
+                    <button onClick={shareWhatsApp} className="flex items-center justify-center gap-1 px-2 py-2 text-[10px] sm:text-xs rounded-lg bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 font-bold transition-colors">
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                        <span className="hidden sm:inline">WhatsApp</span>
+                    </button>
+                    <button onClick={exportPDF} className="flex items-center justify-center gap-1 px-2 py-2 text-[10px] sm:text-xs rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold transition-colors">PDF</button>
+                    <button onClick={exportExcel} className="flex items-center justify-center gap-1 px-2 py-2 text-[10px] sm:text-xs rounded-lg bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 font-bold transition-colors">Excel</button>
+                    <button onClick={handleReset} className="flex items-center justify-center gap-1 px-2 py-2 text-[10px] sm:text-xs rounded-lg bg-secondary text-muted-foreground hover:bg-muted font-bold transition-colors">Reset</button>
                 </div>
             </div>
 
-            {/* Main */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                {/* LEFT — Config (Accordion mobile) */}
+                <div className="lg:col-span-4 space-y-2">
 
-                {/* LEFT — Config */}
-                <div className="lg:col-span-4 space-y-3">
-
-                    {/* Proposal Type + Fidelidade */}
-                    <div className="card-elevated rounded-xl p-3 border-l-2 border-purple-500/30">
-                        <h3 className="text-[10px] font-bold text-purple-400 uppercase mb-1.5">Tipo de Proposta</h3>
-                        <select value={proposalType} onChange={(e) => handleProposalChange(e.target.value)}
-                            className="w-full px-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-[11px] font-medium focus:ring-1 focus:ring-purple-500">
-                            {PROPOSAL_TYPES.map(p => (
-                                <option key={p.id} value={p.id}>{p.label}</option>
-                            ))}
-                        </select>
-                        {promoInfo && proposalType !== "custom" && (
-                            <p className="text-[11px] text-purple-400 bg-purple-500/10 rounded-md px-2 py-1 mt-1.5">{promoInfo.desc}</p>
-                        )}
-                        {/* Fidelidade toggle */}
-                        <div className="mt-2 pt-2 border-t border-border">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <div className={`relative w-8 h-4 rounded-full transition-colors ${fidelidade ? 'bg-blue-500' : 'bg-secondary'}`}
-                                    onClick={() => setFidelidade(!fidelidade)}>
-                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${fidelidade ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                                </div>
-                                <span className="text-[10px] text-foreground font-medium">Termo de Fidelidade</span>
-                            </label>
-                            {fidelidade && (
-                                <p className="text-[11px] text-blue-400 bg-blue-500/10 rounded-md px-2 py-1 mt-1.5">1º mês isento + 12 Meses = 13 Meses total</p>
+                    {/* Proposal Type */}
+                    <div className="card-elevated rounded-xl overflow-hidden">
+                        <button onClick={() => toggleSection("proposta")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                <span className="text-[11px] font-bold text-foreground uppercase">Tipo de Proposta</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-purple-400 font-medium truncate max-w-[120px]">{promoInfo?.label}</span>
+                                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "proposta" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </button>
+                        <div className={`px-3 pb-3 space-y-2 border-t border-border/30 ${openSection === "proposta" ? "block" : "hidden lg:block"}`}>
+                            <select value={proposalType} onChange={(e) => handleProposalChange(e.target.value)}
+                                className="w-full mt-2 px-2.5 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium focus:ring-1 focus:ring-purple-500">
+                                {PROPOSAL_TYPES.map(p => (<option key={p.id} value={p.id}>{p.label}</option>))}
+                            </select>
+                            {promoInfo && proposalType !== "custom" && (
+                                <p className="text-[11px] text-purple-400 bg-purple-500/10 rounded-lg px-2.5 py-1.5">{promoInfo.desc}</p>
                             )}
+                            <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+                                <div className={`relative w-9 h-5 rounded-full transition-colors ${fidelidade ? 'bg-blue-500' : 'bg-secondary border border-border'}`}
+                                    onClick={() => setFidelidade(!fidelidade)}>
+                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${fidelidade ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                </div>
+                                <span className="text-xs text-foreground font-medium">Termo de Fidelidade</span>
+                            </label>
+                            {fidelidade && <p className="text-[11px] text-blue-400 bg-blue-500/10 rounded-lg px-2.5 py-1.5">1º mês isento + 12 Meses = 13 Meses total</p>}
                         </div>
                     </div>
 
                     {/* TPV */}
-                    <div className="card-elevated rounded-xl p-3 border-l-2 border-cyan-500/30">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-bold text-cyan-400 uppercase">TPV Mensal Acordado</h3>
-                            {(() => { const ex = calculateExemptMachines(tpv); return ex > 0 ? <span className="text-[11px] text-[#00A868] font-bold">{ex} maq. isentas</span> : null; })()}
-                        </div>
-                        <div className="mt-1">
-                            <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">R$</span>
+                    <div className="card-elevated rounded-xl overflow-hidden">
+                        <button onClick={() => toggleSection("tpv")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                                <span className="text-[11px] font-bold text-foreground uppercase">TPV Mensal</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-cyan-400 font-bold">R$ {tpv.toLocaleString("pt-BR")}</span>
+                                {(() => { const ex = calculateExemptMachines(tpv); return ex > 0 ? <span className="text-[9px] text-[#00A868] font-bold bg-[#00A868]/10 px-1.5 py-0.5 rounded-full">{ex} isentas</span> : null; })()}
+                                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "tpv" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </button>
+                        <div className={`px-3 pb-3 border-t border-border/30 ${openSection === "tpv" ? "block" : "hidden lg:block"}`}>
+                            <div className="relative mt-2">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                                 <input type="number" min={0} step="1000" value={tpv || ''} onFocus={(e) => e.target.select()} onChange={(e) => setTpv(parseFloat(e.target.value) || 0)}
-                                    className="w-full pl-7 pr-2 py-1.5 rounded-md bg-secondary border border-border text-foreground text-[12px] font-bold text-right focus:ring-1 focus:ring-cyan-500" />
+                                    className="w-full pl-8 pr-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm font-bold text-right focus:ring-1 focus:ring-cyan-500" />
                             </div>
                         </div>
                     </div>
 
-                    {/* Brand Tabs + Rates */}
-                    <div className="card-elevated rounded-xl p-3 border-l-2 border-[#00A868]/30">
-                        <h3 className="text-[10px] font-bold text-[#00A868] uppercase mb-1.5">Taxas por Bandeira</h3>
-
-                        {/* Toggle chips */}
-                        <div className="flex gap-0.5 mb-2 flex-wrap items-center">
-                            {ALL_BRANDS.map((b) => (
-                                <div key={b} className="relative group">
-                                    <button onClick={() => { setActiveBrand(b); if (!enabledBrands[b]) toggleBrand(b); }}
-                                        className={`px-1.5 py-0.5 text-[10px] rounded font-semibold transition-all ${activeBrand === b
-                                            ? "bg-[#00A868]/20 text-[#00A868] ring-1 ring-[#00A868]/40"
-                                            : enabledBrands[b]
-                                                ? "bg-secondary text-foreground hover:bg-muted"
-                                                : "bg-secondary/50 text-muted-foreground/50 line-through hover:bg-muted"}`}>
-                                        {b}
-                                    </button>
-                                    {/* Enable/disable toggle */}
-                                    <button onClick={(e) => { e.stopPropagation(); toggleBrand(b); }}
-                                        className={`absolute -top-1.5 -left-1 w-3 h-3 rounded-full text-[6px] leading-none hidden group-hover:flex items-center justify-center ${enabledBrands[b] ? "bg-[#00A868] text-white" : "bg-red-500 text-white"}`}>
-                                        {enabledBrands[b] ? "✓" : "✕"}
-                                    </button>
-                                    {/* Remove custom */}
-                                    {!BRAND_PRESETS[b] && (
-                                        <button onClick={() => {
-                                            const next = { ...brandRates }; delete next[b];
-                                            setBrandRates(next);
-                                            const ne = { ...enabledBrands }; delete ne[b];
-                                            setEnabledBrands(ne);
-                                            if (activeBrand === b) setActiveBrand(Object.keys(next)[0]);
-                                        }} className="absolute -top-1.5 -right-1 w-3 h-3 bg-red-500 text-white rounded-full text-[6px] leading-none hidden group-hover:flex items-center justify-center">x</button>
-                                    )}
-                                </div>
-                            ))}
-                            {showNewBrand ? (
-                                <div className="flex items-center gap-0.5">
-                                    <input type="text" value={newBrandInput} autoFocus
-                                        onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && newBrandInput.trim()) {
-                                                const name = newBrandInput.trim();
-                                                if (!brandRates[name]) {
-                                                    setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
-                                                    setEnabledBrands({ ...enabledBrands, [name]: true });
-                                                    setActiveBrand(name);
+                    {/* Brand Rates */}
+                    <div className="card-elevated rounded-xl overflow-hidden">
+                        <button onClick={() => toggleSection("taxas")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-[#00A868]" />
+                                <span className="text-[11px] font-bold text-foreground uppercase">Taxas por Bandeira</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-[#00A868] font-medium">{ACTIVE_BRANDS.length} ativas</span>
+                                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "taxas" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </button>
+                        <div className={`px-3 pb-3 border-t border-border/30 space-y-2 ${openSection === "taxas" ? "block" : "hidden lg:block"}`}>
+                            <div className="flex gap-1 mt-2 flex-wrap items-center">
+                                {ALL_BRANDS.map((b) => (
+                                    <div key={b} className="relative group">
+                                        <button onClick={() => { setActiveBrand(b); if (!enabledBrands[b]) toggleBrand(b); }}
+                                            className={`px-2 py-1 text-[10px] rounded-lg font-bold transition-all ${activeBrand === b
+                                                ? "bg-[#00A868] text-white shadow-sm"
+                                                : enabledBrands[b]
+                                                    ? "bg-secondary text-foreground hover:bg-muted"
+                                                    : "bg-secondary/50 text-muted-foreground/50 line-through hover:bg-muted"}`}>
+                                            {b}
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); toggleBrand(b); }}
+                                            className={`absolute -top-1.5 -left-1 w-3.5 h-3.5 rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center ${enabledBrands[b] ? "bg-[#00A868] text-white" : "bg-red-500 text-white"}`}>
+                                            {enabledBrands[b] ? "✓" : "✕"}
+                                        </button>
+                                        {!BRAND_PRESETS[b] && (
+                                            <button onClick={() => {
+                                                const next = { ...brandRates }; delete next[b];
+                                                setBrandRates(next);
+                                                const ne = { ...enabledBrands }; delete ne[b];
+                                                setEnabledBrands(ne);
+                                                if (activeBrand === b) setActiveBrand(Object.keys(next)[0]);
+                                            }} className="absolute -top-1.5 -right-1 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center">x</button>
+                                        )}
+                                    </div>
+                                ))}
+                                {showNewBrand ? (
+                                    <div className="flex items-center gap-1">
+                                        <input type="text" value={newBrandInput} autoFocus
+                                            onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && newBrandInput.trim()) {
+                                                    const name = newBrandInput.trim();
+                                                    if (!brandRates[name]) {
+                                                        setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
+                                                        setEnabledBrands({ ...enabledBrands, [name]: true });
+                                                        setActiveBrand(name);
+                                                    }
+                                                    setNewBrandInput(""); setShowNewBrand(false);
                                                 }
-                                                setNewBrandInput(""); setShowNewBrand(false);
+                                                if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
+                                            }}
+                                            placeholder="NOME"
+                                            className="w-20 px-2 py-1 text-[10px] rounded-lg bg-secondary border border-[#00A868]/40 text-foreground focus:ring-1 focus:ring-[#00A868]" />
+                                        <button onClick={() => {
+                                            const name = newBrandInput.trim();
+                                            if (name && !brandRates[name]) {
+                                                setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
+                                                setEnabledBrands({ ...enabledBrands, [name]: true });
+                                                setActiveBrand(name);
                                             }
-                                            if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
-                                        }}
-                                        placeholder="NOME"
-                                        className="w-20 px-1 py-0.5 text-[10px] rounded bg-secondary border border-[#00A868]/40 text-foreground focus:ring-1 focus:ring-[#00A868]" />
-                                    <button onClick={() => {
-                                        const name = newBrandInput.trim();
-                                        if (name && !brandRates[name]) {
-                                            setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
-                                            setEnabledBrands({ ...enabledBrands, [name]: true });
-                                            setActiveBrand(name);
-                                        }
-                                        setNewBrandInput(""); setShowNewBrand(false);
-                                    }} className="text-[10px] text-[#00A868]">OK</button>
-                                    <button onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }}
-                                        className="text-[10px] text-red-400">X</button>
-                                </div>
-                            ) : (
-                                <button onClick={() => setShowNewBrand(true)}
-                                    className="px-1.5 py-0.5 text-[10px] rounded font-semibold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20">+</button>
-                            )}
-                        </div>
-
-                        {/* Active count */}
-                        <p className="text-[10px] text-muted-foreground mb-1.5">{ACTIVE_BRANDS.length} de {ALL_BRANDS.length} ativas (hover p/ ativar/desativar)</p>
-
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <RI l="Debito" v={sr.debit} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, debit: v } })} />
-                            <RI l="Cred 1x" v={sr.credit1x} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit1x: v } })} />
-                            <RI l="2-6x" v={sr.credit2to6} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit2to6: v } })} />
-                            <RI l="7-12x" v={sr.credit7to12} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit7to12: v } })} />
-                            <RI l="13-18x" v={sr.credit13to18} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit13to18: v } })} />
+                                            setNewBrandInput(""); setShowNewBrand(false);
+                                        }} className="text-xs text-[#00A868] font-bold">OK</button>
+                                        <button onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }} className="text-xs text-red-400 font-bold">✕</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setShowNewBrand(true)}
+                                        className="px-2 py-1 text-[10px] rounded-lg font-bold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20">+</button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <RI l="DÉBITO" v={sr.debit} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, debit: v } })} />
+                                <RI l="CRÉD 1x" v={sr.credit1x} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit1x: v } })} />
+                                <RI l="2-6x" v={sr.credit2to6} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit2to6: v } })} />
+                                <RI l="7-12x" v={sr.credit7to12} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit7to12: v } })} />
+                                <RI l="13-18x" v={sr.credit13to18} set={(v) => setBrandRates({ ...brandRates, [activeBrand]: { ...sr, credit13to18: v } })} />
+                            </div>
                         </div>
                     </div>
 
                     {/* RAV */}
-                    <div className="card-elevated rounded-xl p-3 border-l-2 border-amber-500/30">
-                        <h3 className="text-[10px] font-bold text-amber-500 uppercase mb-1.5">Antecipacao (RAV)</h3>
-                        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                            <div>
-                                <label className="text-[11px] text-muted-foreground uppercase block mb-px">Tipo</label>
-                                <select value={ravTipo} onChange={(e) => setRavTipo(e.target.value as "automatico" | "pontual")}
-                                    className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-amber-500">
-                                    <option value="automatico">Automatico</option>
-                                    <option value="pontual">Pontual (CET=MDR)</option>
-                                </select>
+                    <div className="card-elevated rounded-xl overflow-hidden">
+                        <button onClick={() => toggleSection("rav")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                <span className="text-[11px] font-bold text-foreground uppercase">Antecipação (RAV)</span>
                             </div>
-                            {ravTipo === "automatico" && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-amber-400 font-medium">{ravTipo === "pontual" ? "Pontual" : `Auto ${formatPercent(ravAuto)}`}</span>
+                                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "rav" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </button>
+                        <div className={`px-3 pb-3 border-t border-border/30 space-y-2 ${openSection === "rav" ? "block" : "hidden lg:block"}`}>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
                                 <div>
-                                    <label className="text-[11px] text-muted-foreground uppercase block mb-px">Recebimento</label>
-                                    <select value={ravTiming} onChange={(e) => setRavTiming(e.target.value as "md" | "ds" | "du")}
-                                        className="w-full px-1 py-1 rounded-md bg-secondary border border-border text-foreground text-[10px] focus:ring-1 focus:ring-amber-500">
-                                        <option value="md">Mesmo Dia</option>
-                                        <option value="ds">Dia Seguinte</option>
-                                        <option value="du">Dias Uteis</option>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Tipo</label>
+                                    <select value={ravTipo} onChange={(e) => setRavTipo(e.target.value as "automatico" | "pontual")}
+                                        className="w-full px-2 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-amber-500">
+                                        <option value="automatico">Automático</option>
+                                        <option value="pontual">Pontual (CET=MDR)</option>
                                     </select>
                                 </div>
+                                {ravTipo === "automatico" && (
+                                    <div>
+                                        <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Recebimento</label>
+                                        <select value={ravTiming} onChange={(e) => setRavTiming(e.target.value as "md" | "ds" | "du")}
+                                            className="w-full px-2 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-amber-500">
+                                            <option value="md">Mesmo Dia</option>
+                                            <option value="ds">Dia Seguinte</option>
+                                            <option value="du">Dias Úteis</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <RI l="RAV Auto" v={ravAuto} set={setRavAuto} />
+                                <RI l="RAV Pontual" v={ravPontual} set={setRavPontual} />
+                            </div>
+                            {ravTipo === "pontual" && (
+                                <p className="text-[11px] text-amber-400 bg-amber-500/10 rounded-lg px-2.5 py-1.5">Sem antecipação — CET = apenas MDR</p>
                             )}
                         </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <RI l="RAV Auto" v={ravAuto} set={setRavAuto} />
-                            <RI l="RAV Pontual" v={ravPontual} set={setRavPontual} />
-                        </div>
-                        {ravTipo === "pontual" && (
-                            <p className="text-[11px] text-amber-400 bg-amber-500/10 rounded-md px-2 py-1 mt-1.5">Sem antecipacao — CET = apenas MDR</p>
-                        )}
                     </div>
 
-                    {/* PIX & Maquinas */}
-                    <div className="card-elevated rounded-xl p-3 border-l-2 border-blue-500/30">
-                        <h3 className="text-[10px] font-bold text-blue-400 uppercase mb-1.5">PIX & Maquinas</h3>
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <RI l="PIX" v={pixRate} set={setPixRate} />
-                            <div>
-                                <label className="text-[11px] text-muted-foreground uppercase block mb-px">Aluguel/maq (R$)</label>
-                                <input type="number" min={0} step="0.01" value={rental || ''} onFocus={(e) => e.target.select()} onChange={(e) => setRental(parseFloat(e.target.value) || 0)}
-                                    className="w-full px-1.5 py-1 rounded-md bg-secondary border border-border text-foreground text-[11px] font-medium text-right focus:ring-1 focus:ring-blue-500" />
+                    {/* PIX & Máquinas */}
+                    <div className="card-elevated rounded-xl overflow-hidden">
+                        <button onClick={() => toggleSection("pix")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                <span className="text-[11px] font-bold text-foreground uppercase">PIX & Máquinas</span>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                            <div>
-                                <label className="text-[11px] text-muted-foreground uppercase block mb-px">Maquinas</label>
-                                <input type="number" min={1} value={machines} onFocus={(e) => e.target.select()} onChange={(e) => setMachines(parseInt(e.target.value) || 1)}
-                                    className="w-full px-1.5 py-1 rounded-md bg-secondary border border-border text-foreground text-[11px] font-medium text-right focus:ring-1 focus:ring-blue-500" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-blue-400 font-medium">{machines} máq. | PIX {formatPercent(pixRate)}</span>
+                                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "pix" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                             </div>
-                            <div>
-                                <label className="text-[11px] text-muted-foreground uppercase block mb-px flex items-center gap-1">
-                                    Termos Adesão
-                                    <span className="text-[7px] text-blue-400">(R$ {adesaoValor.toFixed(2)}/un)</span>
-                                </label>
-                                <input type="number" min={0} value={maqAdesao || ''} onFocus={(e) => e.target.select()} onChange={(e) => setMaqAdesao(parseInt(e.target.value) || 0)}
-                                    className="w-full px-1.5 py-1 rounded-md bg-secondary border border-border text-foreground text-[11px] font-medium text-right focus:ring-1 focus:ring-blue-500" />
-                            </div>
-                        </div>
-                        {(() => {
-                            const ipv = calculateExemptMachines(tpv);
-                            // Adesão = sem aluguel (isenção vitalícia, paga R$478,80 uma vez)
-                            // Aluguel só nas maquinas da proposta que não são IPV
-                            const paidProposta = Math.max(0, machines - ipv);
-                            const totalRental = paidProposta * rental;
-                            const adesaoCusto = maqAdesao * adesaoValor;
-                            const totalMaq = machines + maqAdesao;
-                            return (
-                                <div className="mt-2 pt-2 border-t border-border space-y-1">
-                                    <div className="flex justify-between text-[10px]">
-                                        <span className="text-muted-foreground">Total máquinas:</span>
-                                        <span className="font-bold text-foreground">{totalMaq} ({machines} proposta{maqAdesao > 0 ? ` + ${maqAdesao} adesão` : ''})</span>
-                                    </div>
-                                    {ipv > 0 && (
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-muted-foreground">IPV (isentas volume):</span>
-                                            <span className="font-bold text-[#00A868]">{Math.min(ipv, machines)} de {machines}</span>
-                                        </div>
-                                    )}
-                                    {maqAdesao > 0 && (
-                                        <>
-                                            <div className="flex justify-between text-[10px]">
-                                                <span className="text-muted-foreground">Adesão (sem aluguel, vitalícia):</span>
-                                                <span className="font-bold text-blue-400">{maqAdesao} máq.</span>
-                                            </div>
-                                            <div className="flex justify-between text-[10px]">
-                                                <span className="text-muted-foreground">Custo adesão (até {adesaoParc}x):</span>
-                                                <span className="font-bold text-blue-400">{formatCurrency(adesaoCusto)}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                    {paidProposta > 0 ? (
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-muted-foreground">Aluguel ({paidProposta}x {formatCurrency(rental)}):</span>
-                                            <span className="font-bold text-amber-400">{formatCurrency(totalRental)}/mês</span>
-                                        </div>
-                                    ) : machines > 0 ? (
-                                        <p className="text-[11px] text-[#00A868]">✓ Proposta: todas isentas pelo IPV</p>
-                                    ) : null}
+                        </button>
+                        <div className={`px-3 pb-3 border-t border-border/30 space-y-2 ${openSection === "pix" ? "block" : "hidden lg:block"}`}>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                <RI l="PIX" v={pixRate} set={setPixRate} />
+                                <div>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Aluguel/máq (R$)</label>
+                                    <input type="number" min={0} step="0.01" value={rental || ''} onFocus={(e) => e.target.select()} onChange={(e) => setRental(parseFloat(e.target.value) || 0)}
+                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
-                            );
-                        })()}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Máquinas</label>
+                                    <input type="number" min={1} value={machines} onFocus={(e) => e.target.select()} onChange={(e) => setMachines(parseInt(e.target.value) || 1)}
+                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold flex items-center gap-1">
+                                        Adesão <span className="text-[8px] text-blue-400">(R$ {adesaoValor.toFixed(2)}/un)</span>
+                                    </label>
+                                    <input type="number" min={0} value={maqAdesao || ''} onFocus={(e) => e.target.select()} onChange={(e) => setMaqAdesao(parseInt(e.target.value) || 0)}
+                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                            {(() => {
+                                const ipv = calculateExemptMachines(tpv);
+                                const paidProposta = Math.max(0, machines - ipv);
+                                const totalRental = paidProposta * rental;
+                                const adesaoCusto = maqAdesao * adesaoValor;
+                                const totalMaq = machines + maqAdesao;
+                                return (
+                                    <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
+                                        <div className="flex justify-between text-[10px]">
+                                            <span className="text-muted-foreground">Total máquinas:</span>
+                                            <span className="font-bold text-foreground">{totalMaq} ({machines} proposta{maqAdesao > 0 ? ` + ${maqAdesao} adesão` : ''})</span>
+                                        </div>
+                                        {ipv > 0 && (
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-muted-foreground">IPV (isentas volume):</span>
+                                                <span className="font-bold text-[#00A868]">{Math.min(ipv, machines)} de {machines}</span>
+                                            </div>
+                                        )}
+                                        {maqAdesao > 0 && (
+                                            <>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-muted-foreground">Adesão (vitalícia):</span>
+                                                    <span className="font-bold text-blue-400">{maqAdesao} máq.</span>
+                                                </div>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-muted-foreground">Custo adesão (até {adesaoParc}x):</span>
+                                                    <span className="font-bold text-blue-400">{formatCurrency(adesaoCusto)}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {paidProposta > 0 ? (
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-muted-foreground">Aluguel ({paidProposta}x {formatCurrency(rental)}):</span>
+                                                <span className="font-bold text-amber-400">{formatCurrency(totalRental)}/mês</span>
+                                            </div>
+                                        ) : machines > 0 ? (
+                                            <p className="text-[11px] text-[#00A868] font-medium">✓ Todas isentas pelo IPV</p>
+                                        ) : null}
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     </div>
 
                     {/* Legend */}
-                    <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground px-1">
+                    <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground px-1 py-1">
                         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#00A868]/20" /> &lt;5% Seguro</span>
-                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-amber-500/20" /> 5-10% Atencao</span>
+                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-amber-500/20" /> 5-10% Atenção</span>
                         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-red-500/20" /> &gt;10% Alto</span>
                     </div>
                 </div>
 
-                {/* RIGHT — CET Tables in 2-col grid */}
+                {/* RIGHT — CET Tables */}
                 <div className="lg:col-span-8">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {ACTIVE_BRANDS.length === 0 && (
-                            <div className="card-elevated rounded-xl p-8 text-center text-muted-foreground">
+                            <div className="card-elevated rounded-xl p-8 text-center text-muted-foreground col-span-full">
                                 <p className="text-sm">Nenhuma bandeira ativa</p>
-                                <p className="text-xs">Passe o mouse sobre as bandeiras e clique ✓ para ativar</p>
+                                <p className="text-xs mt-1">Passe o mouse sobre as bandeiras e clique ✓ para ativar</p>
                             </div>
                         )}
                         {ACTIVE_BRANDS.map((name) => {
                             const rates = brandRates[name];
                             return (
                                 <div key={name} className="card-elevated rounded-xl overflow-hidden">
-                                    <div className="px-4 py-2.5 bg-[#00A868]/10 border-b border-border flex items-center justify-between">
-                                        <h3 className="text-sm font-bold text-foreground">{name}</h3>
-                                        <span className="text-xs text-muted-foreground">Debito: <span className="font-bold text-foreground">{formatPercent(rates.debit)}</span></span>
+                                    <div className="px-3 py-2 bg-[#00A868]/10 border-b border-border flex items-center justify-between">
+                                        <h3 className="text-xs font-bold text-foreground">{name}</h3>
+                                        <span className="text-[10px] text-muted-foreground">Déb: <span className="font-bold text-foreground">{formatPercent(rates.debit)}</span></span>
                                     </div>
-                                    <div className="p-1.5">
+                                    <div className="overflow-x-auto">
                                         <table className="w-full border-collapse text-[11px]">
                                             <thead>
-                                                <tr>
-                                                    <th className="text-[10px] text-muted-foreground font-medium px-1 py-0.5 border-b border-border text-left w-10">Parc.</th>
-                                                    <th className="text-[10px] text-muted-foreground font-medium px-1 py-0.5 border-b border-border text-right">MDR</th>
-                                                    <th className="text-[10px] text-muted-foreground font-medium px-1 py-0.5 border-b border-border text-right">CET</th>
+                                                <tr className="bg-muted/30">
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-left w-10">Parc.</th>
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">MDR</th>
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">CET</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -592,10 +627,10 @@ tr:nth-child(even){background:#fafafa}
                                                     const mdr = getMDR(rates, parcela);
                                                     const cet = calculateCET(mdr, rav, parcela);
                                                     return (
-                                                        <tr key={i} className="border-b border-border/20">
-                                                            <td className="px-1 py-px text-foreground font-medium">{parcela}x</td>
-                                                            <td className="px-1 py-px text-foreground text-right">{formatPercent(mdr)}</td>
-                                                            <td className={`px-1 py-px text-right font-bold ${getCETColor(cet)}`}>{formatPercent(cet)}</td>
+                                                        <tr key={i} className="border-b border-border/10 hover:bg-muted/20 transition-colors">
+                                                            <td className="px-2 py-1 text-foreground font-bold">{parcela}x</td>
+                                                            <td className="px-2 py-1 text-foreground text-right font-medium">{formatPercent(mdr)}</td>
+                                                            <td className={`px-2 py-1 text-right font-black ${getCETColor(cet)}`}>{formatPercent(cet)}</td>
                                                         </tr>
                                                     );
                                                 })}
@@ -611,3 +646,4 @@ tr:nth-child(even){background:#fafafa}
         </div>
     );
 }
+
