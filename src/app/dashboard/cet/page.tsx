@@ -612,24 +612,31 @@ tr:nth-child(even){background:#fafafa}
                         {ACTIVE_BRANDS.length === 0 && (
                             <div className="card-elevated rounded-xl p-8 text-center text-muted-foreground col-span-full">
                                 <p className="text-sm">Nenhuma bandeira ativa</p>
-                                <p className="text-xs mt-1">Passe o mouse sobre as bandeiras e clique ✓ para ativar</p>
+                                <p className="text-xs mt-1">Ative as bandeiras usando os toggles à esquerda</p>
                             </div>
                         )}
                         {ACTIVE_BRANDS.map((name) => {
                             const rates = brandRates[name];
                             return (
                                 <div key={name} className="card-elevated rounded-xl overflow-hidden">
-                                    <div className="px-3 py-2 bg-[#00A868]/10 border-b border-border flex items-center justify-between">
-                                        <h3 className="text-xs font-bold text-foreground">{name}</h3>
-                                        <span className="text-[10px] text-muted-foreground">Déb: <span className="font-bold text-foreground">{formatPercent(rates.debit)}</span></span>
+                                    {/* Brand Header */}
+                                    <div className="px-3 py-2.5 bg-gradient-to-r from-[#00A868]/10 to-transparent border-b border-border/50 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-[#00A868] flex items-center justify-center">
+                                                <span className="text-[8px] font-black text-white">{name.slice(0, 2)}</span>
+                                            </div>
+                                            <h3 className="text-xs font-bold text-foreground">{name}</h3>
+                                        </div>
+                                        <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-md font-bold text-foreground">Déb: {formatPercent(rates.debit)}</span>
                                     </div>
+                                    {/* CET Table */}
                                     <div className="overflow-x-auto">
                                         <table className="w-full border-collapse text-[11px]">
                                             <thead>
-                                                <tr className="bg-muted/30">
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-left w-10">Parc.</th>
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">MDR</th>
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">CET</th>
+                                                <tr className="bg-muted/40">
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-left w-12">Parc.</th>
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-right">MDR</th>
+                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-right">CET</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -637,11 +644,24 @@ tr:nth-child(even){background:#fafafa}
                                                     const parcela = i + 1;
                                                     const mdr = getMDR(rates, parcela);
                                                     const cet = calculateCET(mdr, rav, parcela);
+                                                    const isRangeStart = parcela === 1 || parcela === 2 || parcela === 7 || parcela === 13;
+                                                    const rangeLabel = parcela === 1 ? "À Vista" : parcela === 2 ? "2-6x" : parcela === 7 ? "7-12x" : parcela === 13 ? "13-18x" : null;
                                                     return (
-                                                        <tr key={i} className="border-b border-border/10 hover:bg-muted/20 transition-colors">
-                                                            <td className="px-2 py-1 text-foreground font-bold">{parcela}x</td>
-                                                            <td className="px-2 py-1 text-foreground text-right font-medium">{formatPercent(mdr)}</td>
-                                                            <td className={`px-2 py-1 text-right font-black ${getCETColor(cet)}`}>{formatPercent(cet)}</td>
+                                                        <tr key={i} className={`transition-colors hover:bg-muted/30 ${
+                                                            isRangeStart ? "border-t-2 border-border/40" : "border-b border-border/5"
+                                                        }`}>
+                                                            <td className="px-3 py-1.5 font-bold text-foreground">
+                                                                <div className="flex items-center gap-1">
+                                                                    {parcela}x
+                                                                    {rangeLabel && <span className="text-[8px] text-muted-foreground/60 font-medium">{rangeLabel}</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-1.5 text-foreground text-right font-medium tabular-nums">{formatPercent(mdr)}</td>
+                                                            <td className={`px-3 py-1.5 text-right font-black tabular-nums ${getCETColor(cet)}`}>
+                                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${getCETBg(cet)}`}>
+                                                                    {formatPercent(cet)}
+                                                                </span>
+                                                            </td>
                                                         </tr>
                                                     );
                                                 })}
