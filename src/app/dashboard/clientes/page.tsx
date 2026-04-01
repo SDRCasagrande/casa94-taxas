@@ -64,7 +64,7 @@ export default function ClientesPage() {
 
     // New client form
     const [fn, setFN] = useState(""); const [fsc, setFSC] = useState(""); const [fcnpj, setFCNPJ] = useState("");
-    const [fbrand, setFBrand] = useState("STONE"); const [fsafra, setFSafra] = useState("M0");
+    const [fbrand, setFBrand] = useState("STONE"); const [fBrandCustom, setFBrandCustom] = useState(""); const [fsafra, setFSafra] = useState("M0");
     const [fph, setFPH] = useState(""); const [fem, setFEM] = useState(""); const [fseg, setFSeg] = useState("");
     const [fcategory, setFCategory] = useState("");
     const [fcd, setFCD] = useState(""); const [fDocMsg, setFDocMsg] = useState(""); const [fDocOk, setFDocOk] = useState<boolean | null>(null);
@@ -133,7 +133,19 @@ export default function ClientesPage() {
     const allCurrentMonthVolumes = clients.flatMap(c => c.monthlyVolumes.filter(v => v.month === currentMonth()));
     const monthSummary = allCurrentMonthVolumes.reduce((a, v) => { const c = calcCommission(v); return { tpv: a.tpv + c.tpvTotal, rev: a.rev + c.totalRevenue, agent: a.agent + c.agent }; }, { tpv: 0, rev: 0, agent: 0 });
 
-    function resetNew() { setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM(""); setFSeg(""); setFCD(""); setFDocMsg(""); setFDocOk(null); setFBrand("STONE"); setFSafra("M0"); setFCategory(""); }
+    function resetNew() { setFN(""); setFSC(""); setFCNPJ(""); setFPH(""); setFEM(""); setFSeg(""); setFCD(""); setFDocMsg(""); setFDocOk(null); setFBrand("STONE"); setFBrandCustom(""); setFSafra("M0"); setFCategory(""); }
+
+    function calcSafra(credDate: string): string {
+        if (!credDate) return "M0";
+        const cd = new Date(credDate + "T00:00:00");
+        const now = new Date();
+        const diff = (now.getFullYear() - cd.getFullYear()) * 12 + (now.getMonth() - cd.getMonth());
+        if (diff <= 0) return "M0";
+        if (diff === 1) return "M1";
+        if (diff === 2) return "M2";
+        if (diff === 3) return "M3";
+        return "BASE";
+    }
 
     async function handleCnpjFetch(data: { name?: string; fantasia?: string; telefone?: string; email?: string; endereco?: string; situacao?: string }) {
         if (data.name && !fn.trim()) setFN(data.fantasia || data.name);
@@ -145,7 +157,8 @@ export default function ClientesPage() {
     async function handleSaveClient() {
         if (!fn.trim()) return;
         try {
-            const r = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: fn, stoneCode: fsc, cnpj: fcnpj, phone: fph, email: fem, segment: fseg, credentialDate: fcd, brand: fbrand, safra: fsafra, category: fcategory }) });
+            const actualBrand = fbrand === "__custom__" ? fBrandCustom.trim() || "STONE" : fbrand;
+            const r = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: fn, stoneCode: fsc, cnpj: fcnpj, phone: fph, email: fem, segment: fseg, credentialDate: fcd, brand: actualBrand, safra: fsafra, category: fcategory }) });
             if (r.ok) { resetNew(); setView("grid"); loadClients(); }
         } catch { }
     }
@@ -218,12 +231,22 @@ export default function ClientesPage() {
                             <input value={fn} onChange={e => setFN(e.target.value)} placeholder="Nome completo" className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
                         
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">Empresa *</label>
-                            <select value={fbrand} onChange={e => setFBrand(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50">
-                                <option value="STONE">Stone</option>
-                                <option value="TON">Ton</option>
-                            </select></div>
+                            {fbrand === "__custom__" ? (
+                                <div className="flex gap-2">
+                                    <input value={fBrandCustom} onChange={e => setFBrandCustom(e.target.value.toUpperCase())} placeholder="Nome da empresa" autoFocus
+                                        className="flex-1 px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" />
+                                    <button type="button" onClick={() => { setFBrand("STONE"); setFBrandCustom(""); }} className="px-2 py-1 rounded-lg text-xs text-muted-foreground hover:bg-muted">✕</button>
+                                </div>
+                            ) : (
+                                <select value={fbrand} onChange={e => setFBrand(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50">
+                                    <option value="STONE">Stone</option>
+                                    <option value="TON">Ton</option>
+                                    <option value="CERVANTES">Cervantes</option>
+                                    <option value="__custom__">+ Outra empresa...</option>
+                                </select>
+                            )}</div>
                             
-                        <div><label className="text-xs font-medium text-muted-foreground block mb-1">Safra Comercial *</label>
+                        <div><label className="text-xs font-medium text-muted-foreground block mb-1">Safra Comercial {fcd && <span className="text-[9px] text-[#00A868] ml-1">(auto: {calcSafra(fcd)})</span>}</label>
                             <select value={fsafra} onChange={e => setFSafra(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50">
                                 <option value="M0">M0 (Mês Inicial)</option>
                                 <option value="M1">M1 (Mês Seguinte)</option>
@@ -245,7 +268,7 @@ export default function ClientesPage() {
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">Categoria / Grupo</label>
                             <input value={fcategory} onChange={e => setFCategory(e.target.value)} placeholder="Ex: VIP, Parceiro, Indicação..." className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
                         <div><label className="text-xs font-medium text-muted-foreground block mb-1">Data Credenciamento</label>
-                            <input type="date" value={fcd} onChange={e => setFCD(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
+                            <input type="date" value={fcd} onChange={e => { setFCD(e.target.value); setFSafra(calcSafra(e.target.value)); }} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
                     </div>
                 </div>
                 <button onClick={handleSaveClient} disabled={!fn.trim()} className="w-full py-3 rounded-xl bg-[#00A868] text-white font-bold hover:bg-[#00A868] disabled:opacity-50 transition-colors">Cadastrar Cliente</button>
@@ -686,9 +709,12 @@ export default function ClientesPage() {
                         <button key={key} onClick={() => setFilter(key)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{lbl}</button>
                     ))}
                 </div>
-                <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5">
-                    {[["all", "🏢 Todos"], ["STONE", "🟢 Stone"], ["TON", "🔵 Ton"]].map(([key, lbl]) => (
-                        <button key={key} onClick={() => setBrandFilter(key)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${brandFilter === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{lbl}</button>
+                <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5 flex-wrap">
+                    <button onClick={() => setBrandFilter("all")} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${brandFilter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>🏢 Todos</button>
+                    {[...new Set(clients.map(c => c.brand).filter(Boolean))].sort().map(b => (
+                        <button key={b} onClick={() => setBrandFilter(b)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${brandFilter === b ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
+                            {b === "STONE" ? "🟢" : b === "TON" ? "🔵" : "🏷️"} {b}
+                        </button>
                     ))}
                 </div>
             </div>
