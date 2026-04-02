@@ -1156,9 +1156,9 @@ function AddTaskModal({ lists, users, defaultListId, defaultDate, defaultTime, o
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-lg card-elevated shadow-2xl rounded-2xl animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col card-elevated shadow-2xl rounded-2xl animate-in zoom-in-95 fade-in duration-200" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-border">
                     <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-[#00A868] flex items-center justify-center text-white shadow-lg shadow-[#00A868]/20">
                             <Plus className="w-4 h-4" />
@@ -1170,7 +1170,7 @@ function AddTaskModal({ lists, users, defaultListId, defaultDate, defaultTime, o
                     </button>
                 </div>
 
-                <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="p-5 space-y-4 flex-1 overflow-y-auto min-h-0">
                     {/* Title */}
                     <input value={title} onChange={e => setTitle(e.target.value)} autoFocus
                         onKeyDown={e => { if (e.key === "Enter" && title.trim()) handleSave(); }}

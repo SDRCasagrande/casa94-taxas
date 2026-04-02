@@ -128,14 +128,15 @@ function RatesForm({ rates, set }: { rates: RateSnapshot; set: (r: RateSnapshot)
     }
 
     return (
-        <div className="space-y-3">
-            <BrandStrip
-                brands={Object.keys(br)}
-                enabledBrands={enabledBrands}
-                activeBrand={activeBrand}
-                onBrandClick={handleBrandClick}
-                onOpenModal={() => setShowBrandModal(true)}
-            />
+        <div className="space-y-2">
+            <div className="flex items-center justify-between pb-1">
+                <span className="text-[10px] text-muted-foreground font-medium">Bandeiras Ativas</span>
+                <button type="button" onClick={() => setShowBrandModal(true)}
+                    className="text-[10px] font-bold text-[#00A868] hover:text-[#008f58] transition-colors">
+                    + Gerenciar
+                </button>
+            </div>
+            
             {showBrandModal && (
                 <BrandSelectorModal
                     brands={Object.keys(br)}
@@ -146,20 +147,71 @@ function RatesForm({ rates, set }: { rates: RateSnapshot; set: (r: RateSnapshot)
                     onClose={() => setShowBrandModal(false)}
                 />
             )}
-            {enabledBrands[activeBrand] !== false && (
-                <>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <RI l="Débito" v={cb.debit} set={v => up("debit", v)} />
-                        <RI l="Crédito 1x" v={cb.credit1x} set={v => up("credit1x", v)} />
-                        <RI l="2-6x" v={cb.credit2to6} set={v => up("credit2to6", v)} />
-                        <RI l="7-12x" v={cb.credit7to12} set={v => up("credit7to12", v)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <RI l="PIX" v={rates.pix} set={v => set({ ...rates, pix: v })} />
-                        <RI l="RAV" v={rates.ravRate ?? rates.rav} set={v => set({ ...rates, ravRate: v, rav: v })} />
-                    </div>
-                </>
-            )}
+
+            <div className="space-y-1.5">
+                {Object.keys(br).map(b => {
+                    const isEnabled = enabledBrands[b] !== false;
+                    const isSelected = activeBrand === b && isEnabled;
+                    const bRates = br[b];
+                    return (
+                        <div key={b} className={`rounded-xl transition-all overflow-hidden ${
+                            isSelected
+                                ? "bg-[#00A868]/5 border-2 border-[#00A868] shadow-sm shadow-[#00A868]/10"
+                                : isEnabled
+                                    ? "bg-[#00A868]/5 border border-[#00A868]/20"
+                                    : "bg-secondary/30 border border-border/50"
+                        }`}>
+                            <div className="flex items-center gap-0 px-1.5 py-1.5">
+                                {/* Toggle ✓/✗ */}
+                                <button type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isEnabled) {
+                                            setEnabledBrands(prev => ({ ...prev, [b]: false }));
+                                            if (activeBrand === b) {
+                                                const next = Object.keys(br).find(k => k !== b && enabledBrands[k] !== false);
+                                                if (next) setActiveBrand(next);
+                                            }
+                                        } else {
+                                            setEnabledBrands(prev => ({ ...prev, [b]: true }));
+                                            setActiveBrand(b);
+                                        }
+                                    }}
+                                    className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm font-bold transition-all ${
+                                        isEnabled
+                                            ? "bg-[#00A868] text-white shadow-sm shadow-[#00A868]/30"
+                                            : "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                                    }`}>
+                                    {isEnabled ? "✓" : "✗"}
+                                </button>
+                                {/* Brand info */}
+                                <button type="button"
+                                    onClick={() => { if (isEnabled) setActiveBrand(isSelected ? "" : b); }}
+                                    className={`flex-1 flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${isEnabled ? "hover:bg-[#00A868]/5 cursor-pointer" : "cursor-default"}`}>
+                                    <BrandIcon brand={b} size={14} />
+                                    <span className={`text-xs font-bold truncate ${isEnabled ? "text-foreground" : "text-muted-foreground/50 line-through"}`}>{b}</span>
+                                </button>
+                            </div>
+                            
+                            {/* Accordion content */}
+                            {isSelected && (
+                                <div className="p-3 bg-card/60 border-t border-[#00A868]/20 space-y-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <RI l="Débito" v={bRates.debit} set={v => up("debit", v)} />
+                                        <RI l="Crédito 1x" v={bRates.credit1x} set={v => up("credit1x", v)} />
+                                        <RI l="2-6x" v={bRates.credit2to6} set={v => up("credit2to6", v)} />
+                                        <RI l="7-12x" v={bRates.credit7to12} set={v => up("credit7to12", v)} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                                        <RI l="PIX" v={rates.pix} set={v => set({ ...rates, pix: v })} />
+                                        <RI l="RAV" v={rates.ravRate ?? rates.rav} set={v => set({ ...rates, ravRate: v, rav: v })} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }
