@@ -45,4 +45,4 @@ USER nextjs
 EXPOSE 3000
 
 # Push schema to DB on startup, then start app
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node server.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node server.js"]
