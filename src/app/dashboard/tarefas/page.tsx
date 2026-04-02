@@ -783,7 +783,7 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                             onKeyDown={e => { if (e.key === "Enter") setEditingTitle(false); if (e.key === "Escape") { setTitle(task.title); setEditingTitle(false); } }}
                             className="w-full text-lg font-bold text-foreground bg-transparent border-b-2 border-[#00A868] focus:outline-none pb-1" />
                     ) : (
-                        <h2 onClick={() => setEditingTitle(true)} className={`text-lg font-bold cursor-pointer hover:text-[#00A868] transition-colors ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{title || task.title}</h2>
+                        <h2 onClick={() => setEditingTitle(true)} className={`text-lg font-bold cursor-pointer hover:text-[#00A868] transition-colors break-words ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{title || task.title}</h2>
                     )}
 
                     {/* Meta Grid */}
@@ -812,24 +812,92 @@ function TaskDetailModal({ task, users, onUpdate, onDelete, onClose }: {
                         {/* Date */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Data</label>
-                            <input type="date" value={date} onChange={e => { setDate(e.target.value); markDirty(); }}
-                                className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark]" />
+                            <div className="relative">
+                                <input type="date" value={date} onChange={e => { setDate(e.target.value); markDirty(); }}
+                                    id="task-date-input"
+                                    className="w-full px-3 py-2 pr-9 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark]" />
+                                <button type="button" onClick={() => { const el = document.getElementById('task-date-input') as HTMLInputElement; el?.showPicker?.(); el?.focus(); }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-[#00A868]/10 text-muted-foreground hover:text-[#00A868] transition-colors">
+                                    <CalendarDays className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex gap-1">
+                                {[
+                                    { label: "Hoje", days: 0 },
+                                    { label: "Amanhã", days: 1 },
+                                    { label: "+1 sem", days: 7 },
+                                ].map(s => {
+                                    const d = new Date(); d.setDate(d.getDate() + s.days);
+                                    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                                    return (
+                                        <button key={s.label} type="button" onClick={() => { setDate(val); markDirty(); }}
+                                            className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-colors ${date === val ? "bg-[#00A868] text-white" : "bg-muted text-muted-foreground hover:bg-[#00A868]/10 hover:text-[#00A868]"}`}>
+                                            {s.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Time */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Horário</label>
-                            <input type="time" value={time} onChange={e => { setTime(e.target.value); markDirty(); }}
-                                className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark]" />
+                            <div className="relative">
+                                <input type="time" value={time} onChange={e => { setTime(e.target.value); markDirty(); }}
+                                    id="task-time-input"
+                                    className="w-full px-3 py-2 pr-9 bg-muted/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark]" />
+                                <button type="button" onClick={() => { const el = document.getElementById('task-time-input') as HTMLInputElement; el?.showPicker?.(); el?.focus(); }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-[#00A868]/10 text-muted-foreground hover:text-[#00A868] transition-colors">
+                                    <Clock className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex gap-1">
+                                {["09:00", "10:00", "14:00", "18:00"].map(t => (
+                                    <button key={t} type="button" onClick={() => { setTime(t); markDirty(); }}
+                                        className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-colors ${time === t ? "bg-[#00A868] text-white" : "bg-muted text-muted-foreground hover:bg-[#00A868]/10 hover:text-[#00A868]"}`}>
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Deadline */}
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Prazo</label>
-                            <input type="date" value={dueDate} onChange={e => { setDueDate(e.target.value); markDirty(); }}
-                                className={`w-full px-3 py-2 bg-muted/50 border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark] ${
-                                    dueDate && new Date(dueDate + 'T23:59:59') < new Date() ? 'border-red-500/50 text-red-400' : 'border-border'
-                                }`} />
+                            <div className="relative">
+                                <input type="date" value={dueDate} onChange={e => { setDueDate(e.target.value); markDirty(); }}
+                                    id="task-due-input"
+                                    className={`w-full px-3 py-2 pr-9 bg-muted/50 border rounded-xl text-sm text-foreground focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark] ${
+                                        dueDate && new Date(dueDate + 'T23:59:59') < new Date() ? 'border-red-500/50 text-red-400' : 'border-border'
+                                    }`} />
+                                <button type="button" onClick={() => { const el = document.getElementById('task-due-input') as HTMLInputElement; el?.showPicker?.(); el?.focus(); }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-[#00A868]/10 text-muted-foreground hover:text-[#00A868] transition-colors">
+                                    <CalendarDays className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex gap-1">
+                                {[
+                                    { label: "+3d", days: 3 },
+                                    { label: "+1 sem", days: 7 },
+                                    { label: "+15d", days: 15 },
+                                    { label: "+30d", days: 30 },
+                                ].map(s => {
+                                    const d = new Date(); d.setDate(d.getDate() + s.days);
+                                    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                                    return (
+                                        <button key={s.label} type="button" onClick={() => { setDueDate(val); markDirty(); }}
+                                            className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-colors ${dueDate === val ? "bg-[#00A868] text-white" : "bg-muted text-muted-foreground hover:bg-[#00A868]/10 hover:text-[#00A868]"}`}>
+                                            {s.label}
+                                        </button>
+                                    );
+                                })}
+                                {dueDate && (
+                                    <button type="button" onClick={() => { setDueDate(""); markDirty(); }}
+                                        className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
+                                        Limpar
+                                    </button>
+                                )}
+                            </div>
                             {dueDate && new Date(dueDate + 'T23:59:59') < new Date() && (
                                 <p className="text-[10px] text-red-400 font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Prazo vencido</p>
                             )}
