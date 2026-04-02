@@ -85,7 +85,7 @@ export async function GET() {
 
         // ═══ 2. CHURN RISK — Clients that might leave ═══
         const allClients = await prisma.client.findMany({
-            where: { userId: session.userId, status: "ativo" },
+            where: session.orgId ? { orgId: session.orgId, status: "ativo" } : { userId: session.userId, status: "ativo" },
             include: {
                 negotiations: { orderBy: { createdAt: "desc" }, take: 3 },
                 monthlyVolumes: { orderBy: { month: "desc" }, take: 3 },

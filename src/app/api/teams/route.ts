@@ -7,7 +7,11 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
+    const where: any = {};
+    if (session.orgId) where.orgId = session.orgId;
+
     const groups = await (prisma as any).teamGroup.findMany({
+        where,
         include: {
             members: {
                 include: { user: { select: { id: true, name: true, email: true } } }
@@ -30,7 +34,7 @@ export async function POST(req: Request) {
     // Create new group
     if (body.action === "createGroup") {
         const group = await (prisma as any).teamGroup.create({
-            data: { name: body.name },
+            data: { name: body.name, orgId: session.orgId || null },
             include: { members: { include: { user: { select: { id: true, name: true, email: true } } } } }
         });
         return NextResponse.json(group);

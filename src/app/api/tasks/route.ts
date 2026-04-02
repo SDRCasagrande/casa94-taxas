@@ -8,8 +8,12 @@ export async function GET() {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+        // Show task lists within the org (team visibility)
+        const listWhere: any = { userId: session.userId };
+        if (session.orgId) listWhere.orgId = session.orgId;
+
         let lists = await prisma.taskList.findMany({
-            where: { userId: session.userId },
+            where: listWhere,
             include: {
                 tasks: {
                     include: {
@@ -25,7 +29,7 @@ export async function GET() {
         // Auto-create default list on first visit
         if (lists.length === 0) {
             const newList = await prisma.taskList.create({
-                data: { name: 'Minhas Tarefas', userId: session.userId },
+                data: { name: 'Minhas Tarefas', userId: session.userId, orgId: session.orgId || null },
                 include: { tasks: { include: { assignee: { select: { id: true, name: true, email: true } }, createdBy: { select: { id: true, name: true } } } } },
             });
             lists = [newList];
@@ -66,8 +70,12 @@ export async function GET() {
             });
         }
 
-        // User's groups for the UI
+        // User's groups for the UI (scoped to org)
+        const teamWhere: any = {};
+        if (session.orgId) teamWhere.orgId = session.orgId;
+
         const teams = await prisma.teamGroup.findMany({
+            where: teamWhere,
             include: {
                 members: { include: { user: { select: { id: true, name: true } } } },
                 _count: { select: { tasks: true } },
@@ -92,7 +100,7 @@ export async function POST(request: Request) {
         if (!name?.trim()) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
 
         const list = await prisma.taskList.create({
-            data: { name: name.trim(), userId: session.userId },
+            data: { name: name.trim(), userId: session.userId, orgId: session.orgId || null },
             include: { tasks: true },
         });
 

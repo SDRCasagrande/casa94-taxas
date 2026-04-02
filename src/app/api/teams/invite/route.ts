@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession, isAdmin } from '@/lib/auth';
+import { sendEmail, inviteEmailHtml } from '@/lib/email';
 
 // POST /api/teams/invite — Send invite to join org
 export async function POST(request: Request) {
@@ -42,15 +43,24 @@ export async function POST(request: Request) {
             },
         });
 
-        // TODO: Send email via Resend with invite link
-        // For now, return the invite link directly
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.bittask.com.br';
         const inviteLink = `${baseUrl}/convite/${invite.token}`;
+
+        // Get org name for email
+        const org = await prisma.organization.findUnique({ where: { id: session.orgId }, select: { name: true } });
+        const orgName = org?.name || 'BitTask';
+
+        // Send invite email via Resend
+        await sendEmail({
+            to: email.trim().toLowerCase(),
+            subject: `Convite para ${orgName} — BitTask`,
+            html: inviteEmailHtml(orgName, inviteLink, role),
+        });
 
         return NextResponse.json({
             success: true,
             inviteLink,
-            message: `Convite criado para ${email}. Link: ${inviteLink}`,
+            message: `Convite enviado para ${email}`,
         });
     } catch (error) {
         console.error('POST /api/teams/invite error:', error);

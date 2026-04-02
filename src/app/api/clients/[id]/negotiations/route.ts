@@ -9,8 +9,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const { id } = await params;
 
-        // Verify ownership
-        const client = await prisma.client.findFirst({ where: { id, userId: session.userId } });
+        // Verify ownership (org-level or user-level)
+        const clientWhere: any = { id };
+        if (session.orgId) clientWhere.orgId = session.orgId;
+        else clientWhere.userId = session.userId;
+        const client = await prisma.client.findFirst({ where: clientWhere });
         if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const body = await request.json();
@@ -48,7 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             });
             if (!list) {
                 list = await prisma.taskList.create({
-                    data: { name: "Minhas Tarefas", userId: session.userId },
+                    data: { name: "Minhas Tarefas", userId: session.userId, orgId: session.orgId || null },
                 });
             }
 

@@ -9,8 +9,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const { id } = await params;
 
+        const where: any = { id };
+        if (session.orgId) where.orgId = session.orgId;
+        else where.userId = session.userId;
+
         const client = await prisma.client.findFirst({
-            where: { id, userId: session.userId },
+            where,
             include: { negotiations: { orderBy: { createdAt: "desc" } } },
         });
         if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -29,7 +33,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         const { id } = await params;
         const body = await request.json();
 
-        const existing = await prisma.client.findFirst({ where: { id, userId: session.userId } });
+        const existWhere: any = { id };
+        if (session.orgId) existWhere.orgId = session.orgId;
+        else existWhere.userId = session.userId;
+
+        const existing = await prisma.client.findFirst({ where: existWhere });
         if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const client = await prisma.client.update({
@@ -61,7 +69,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const { id } = await params;
 
-        const existing = await prisma.client.findFirst({ where: { id, userId: session.userId } });
+        const delWhere: any = { id };
+        if (session.orgId) delWhere.orgId = session.orgId;
+        else delWhere.userId = session.userId;
+
+        const existing = await prisma.client.findFirst({ where: delWhere });
         if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         await prisma.client.delete({ where: { id } });

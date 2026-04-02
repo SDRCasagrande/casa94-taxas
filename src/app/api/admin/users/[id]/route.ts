@@ -11,6 +11,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         const { id } = await params;
 
         const body = await request.json();
+
+        // Security: verify target user is in same org
+        const target = await prisma.user.findUnique({ where: { id }, select: { orgId: true, userRole: true } });
+        if (!target || (session.orgId && target.orgId !== session.orgId)) {
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        }
+        // Prevent admin from modifying super_admin
+        if (target.userRole === 'super_admin' && session.userRole !== 'super_admin') {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
 

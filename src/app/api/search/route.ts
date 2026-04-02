@@ -16,7 +16,7 @@ export async function GET(request: Request) {
         // Search clients
         const clients = await prisma.client.findMany({
             where: {
-                userId: session.userId,
+                ...(session.orgId ? { orgId: session.orgId } : { userId: session.userId }),
                 OR: [
                     { name: { contains: q, mode: 'insensitive' } },
                     { cnpj: { contains: q } },

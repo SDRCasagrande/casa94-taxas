@@ -13,14 +13,17 @@ export async function POST(request: Request) {
         if (!question?.trim()) return NextResponse.json({ error: "Pergunta é obrigatória" }, { status: 400 });
 
         // Build context from user's actual data
+        const clientWhere: any = session.orgId ? { orgId: session.orgId } : { userId: session.userId };
+        const negWhere: any = session.orgId ? { client: { orgId: session.orgId } } : { client: { userId: session.userId } };
+
         const [clients, negotiations, tasks] = await Promise.all([
             prisma.client.findMany({
-                where: { userId: session.userId },
+                where: clientWhere,
                 select: { id: true, name: true, stoneCode: true, status: true, brand: true },
                 take: 50,
             }),
             prisma.negotiation.findMany({
-                where: { client: { userId: session.userId } },
+                where: negWhere,
                 include: { client: { select: { name: true, stoneCode: true } } },
                 orderBy: { createdAt: "desc" },
                 take: 30,

@@ -8,15 +8,17 @@ export async function GET() {
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const uid = session.userId;
+        const clientFilter: any = session.orgId ? { orgId: session.orgId } : { userId: uid };
+        const negFilter: any = session.orgId ? { client: { orgId: session.orgId } } : { client: { userId: uid } };
 
         // Counts
-        const totalClients = await prisma.client.count({ where: { userId: uid } });
-        const activeClients = await prisma.client.count({ where: { userId: uid, status: "ativo" } });
-        const canceledClients = await prisma.client.count({ where: { userId: uid, status: "cancelado" } });
+        const totalClients = await prisma.client.count({ where: clientFilter });
+        const activeClients = await prisma.client.count({ where: { ...clientFilter, status: "ativo" } });
+        const canceledClients = await prisma.client.count({ where: { ...clientFilter, status: "cancelado" } });
 
         // All negotiations
         const allNegs = await prisma.negotiation.findMany({
-            where: { client: { userId: uid } },
+            where: negFilter,
             select: { id: true, status: true, rates: true, dateNeg: true, dateAccept: true, stageHistory: true },
         });
         const totalNegotiations = allNegs.length;
@@ -68,7 +70,7 @@ export async function GET() {
 
         // Recent clients with last negotiation
         const recentClients = await prisma.client.findMany({
-            where: { userId: uid },
+            where: clientFilter,
             include: { negotiations: { orderBy: { createdAt: "desc" }, take: 1 } },
             orderBy: { createdAt: "desc" },
             take: 6,
@@ -82,7 +84,7 @@ export async function GET() {
         let tpvTotal = 0, revenueTotal = 0, agentCommission = 0;
         try {
             const monthVolumes = await prisma.clientMonth.findMany({
-                where: { client: { userId: uid }, month: currentMonth },
+                where: { client: clientFilter, month: currentMonth },
             });
             monthVolumes.forEach(v => {
                 const tpv = v.tpvDebit + v.tpvCredit + v.tpvPix;
@@ -97,7 +99,7 @@ export async function GET() {
         const RENEG_DAYS = 60;
         const acceptedNegsAll = await prisma.negotiation.findMany({
             where: {
-                client: { userId: uid },
+                client: clientFilter,
                 status: { in: ["aceita", "aprovado"] },
                 dateAccept: { not: "" },
             },
@@ -128,7 +130,7 @@ export async function GET() {
 
         // Monthly credentialing count — clients credentialed this month
         const allClients = await prisma.client.findMany({
-            where: { userId: uid },
+            where: clientFilter,
             select: { credentialDate: true },
         });
         const monthlyCredentialings = allClients.filter(c => {
