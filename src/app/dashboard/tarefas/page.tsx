@@ -54,6 +54,8 @@ export default function TarefasPage() {
     const [calYear, setCalYear] = useState(new Date().getFullYear());
     const [sidebarFilter, setSidebarFilter] = useState<"all" | "starred" | "assigned" | string>("all");
     const [detailTask, setDetailTask] = useState<TaskData | null>(null);
+    const [gcalConnected, setGcalConnected] = useState<boolean | null>(null);
+    const [gcalConnecting, setGcalConnecting] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -71,6 +73,13 @@ export default function TarefasPage() {
     }, []);
 
     useEffect(() => { load(); }, [load]);
+
+    // Check Google Calendar status
+    useEffect(() => {
+        fetch("/api/google-calendar/status").then(r => r.json()).then(d => {
+            setGcalConnected(d.connected === true);
+        }).catch(() => setGcalConnected(false));
+    }, []);
 
     const allTasks = useMemo(() => lists.flatMap(l => l.tasks), [lists]);
     const totalPending = allTasks.filter(t => !t.completed).length;
@@ -324,7 +333,40 @@ export default function TarefasPage() {
                 )}
 
                 {view === "calendar" && (
-                    <div className="flex-1 overflow-auto">
+                    <div className="flex-1 overflow-auto space-y-3">
+                        {/* Google Calendar Connection Banner */}
+                        {gcalConnected === false && (
+                            <div className="card-elevated p-4 flex flex-col sm:flex-row items-center gap-3 border-l-4 border-[#4285F4]">
+                                <div className="w-10 h-10 rounded-xl bg-[#4285F4]/10 flex items-center justify-center shrink-0">
+                                    <CalendarDays className="w-5 h-5 text-[#4285F4]" />
+                                </div>
+                                <div className="flex-1 min-w-0 text-center sm:text-left">
+                                    <p className="text-sm font-bold text-foreground">Conectar Google Calendar</p>
+                                    <p className="text-[11px] text-muted-foreground">Sincronize tarefas com sua agenda Google — bidirecional, em tempo real.</p>
+                                </div>
+                                <button
+                                    onClick={() => { setGcalConnecting(true); window.location.href = "/api/google-calendar/auth"; }}
+                                    disabled={gcalConnecting}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#4285F4] text-white hover:bg-[#3367D6] shadow-lg shadow-[#4285F4]/20 transition-all active:scale-95 shrink-0 disabled:opacity-50"
+                                >
+                                    {gcalConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                                    {gcalConnecting ? "Conectando..." : "Conectar Google"}
+                                </button>
+                            </div>
+                        )}
+                        {gcalConnected === true && (
+                            <div className="card-elevated p-3 flex items-center gap-3 border-l-4 border-[#00A868]">
+                                <div className="w-8 h-8 rounded-lg bg-[#00A868]/10 flex items-center justify-center shrink-0">
+                                    <CalendarDays className="w-4 h-4 text-[#00A868]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-[#00A868] flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#00A868] animate-pulse" />
+                                        Google Calendar conectado
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <div className="card-elevated overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                                 <button onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else setCalMonth(calMonth - 1); }} className="p-1.5 rounded-lg hover:bg-muted"><ChevronLeft className="w-4 h-4" /></button>

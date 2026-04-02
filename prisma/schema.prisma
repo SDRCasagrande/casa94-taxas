@@ -32,6 +32,7 @@ model User {
   googleCalendarToken GoogleCalendarToken?
   comments      NegotiationComment[]
   goals         UserGoal[]
+  auditLogs     AuditLog[]
 
   @@map("users")
 }
@@ -279,5 +280,25 @@ model GoogleCalendarToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("google_calendar_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  userName    String
+  action      String   // DELETE_NEGOTIATION, DELETE_CLIENT, CANCEL_CLIENT, DELETE_USER, DELETE_ROLE, etc.
+  entityType  String   // negotiation, client, user, role, task
+  entityId    String?
+  entityName  String?
+  reason      String?  // justification from ConfirmModal
+  metadata    Json?    // extra context
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 

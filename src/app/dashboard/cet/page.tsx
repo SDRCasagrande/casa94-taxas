@@ -68,6 +68,41 @@ export default function CETCalculatorPage() {
     const [newBrandInput, setNewBrandInput] = useState("");
     const [showNewBrand, setShowNewBrand] = useState(false);
 
+    // Client autocomplete
+    interface ClientSuggestion { id: string; name: string; cnpj: string; negotiations: { rates: any }[] }
+    const [clientSuggestions, setClientSuggestions] = useState<ClientSuggestion[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    useEffect(() => {
+        fetch("/api/clients").then(r => r.json()).then(d => {
+            if (Array.isArray(d)) setClientSuggestions(d);
+        }).catch(() => {});
+    }, []);
+
+    function selectClient(c: ClientSuggestion) {
+        setClientName(c.name);
+        setShowSuggestions(false);
+        // Auto-fill rates from latest negotiation
+        const lastNeg = c.negotiations?.[0];
+        if (lastNeg?.rates) {
+            const r = lastNeg.rates;
+            if (r.brandRates) {
+                const newBR = { ...brandRates };
+                const newEB = { ...enabledBrands };
+                for (const [brand, vals] of Object.entries(r.brandRates as Record<string, any>)) {
+                    newBR[brand] = { debit: vals.debit || 0, credit1x: vals.credit1x || 0, credit2to6: vals.credit2to6 || 0, credit7to12: vals.credit7to12 || 0, credit13to18: vals.credit13to18 || vals.credit7to12 || 0 };
+                    newEB[brand] = true;
+                }
+                setBrandRates(newBR);
+                setEnabledBrands(newEB);
+            }
+            if (r.pix !== undefined) setPixRate(r.pix);
+            if (r.ravRate !== undefined || r.rav !== undefined) setRavAuto(r.ravRate ?? r.rav ?? 1.30);
+            if (r.ravPontual !== undefined) setRavPontual(r.ravPontual);
+            if (r.ravTipo) setRavTipo(r.ravTipo);
+            if (r.ravTiming) setRavTiming(r.ravTiming);
+        }
+    }
     const ALL_BRANDS = Object.keys(brandRates);
     const ACTIVE_BRANDS = ALL_BRANDS.filter(b => enabledBrands[b]);
     const sr = brandRates[activeBrand] || BRAND_PRESETS["VISA/MASTER"];
@@ -107,14 +142,16 @@ export default function CETCalculatorPage() {
                 if (d.rental !== undefined) setRental(d.rental);
                 if (d.fidelidade !== undefined) setFidelidade(d.fidelidade);
                 if (d.maqAdesao !== undefined) setMaqAdesao(d.maqAdesao);
+                if (d.adesaoValor !== undefined) setAdesaoValor(d.adesaoValor);
+                if (d.adesaoParc !== undefined) setAdesaoParc(d.adesaoParc);
             }
         } catch { /* */ }
     }, []);
 
     // Save
     const save = useCallback(() => {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ clientName, proposalType, brandRates, enabledBrands, activeBrand, ravAuto, ravPontual, ravTipo, ravTiming, pixRate, tpv, machines, rental, fidelidade, maqAdesao })); } catch { /* */ }
-    }, [clientName, proposalType, brandRates, enabledBrands, activeBrand, ravAuto, ravPontual, ravTipo, ravTiming, pixRate, tpv, machines, rental, fidelidade, maqAdesao]);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ clientName, proposalType, brandRates, enabledBrands, activeBrand, ravAuto, ravPontual, ravTipo, ravTiming, pixRate, tpv, machines, rental, fidelidade, maqAdesao, adesaoValor, adesaoParc })); } catch { /* */ }
+    }, [clientName, proposalType, brandRates, enabledBrands, activeBrand, ravAuto, ravPontual, ravTipo, ravTiming, pixRate, tpv, machines, rental, fidelidade, maqAdesao, adesaoValor, adesaoParc]);
     useEffect(() => { save(); }, [save]);
 
     function handleReset() {
@@ -307,10 +344,34 @@ tr:nth-child(even){background:#fafafa}
                     <div className="w-10 h-10 rounded-xl bg-[#00A868]/10 border border-[#00A868]/10 flex items-center justify-center shrink-0">
                         <span className="text-[#00A868] text-sm font-black">CET</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)}
+                    <div className="flex-1 min-w-0 relative">
+                        <input type="text" value={clientName}
+                            onChange={(e) => { setClientName(e.target.value); setShowSuggestions(e.target.value.length >= 2); }}
+                            onFocus={() => { if (clientName.length >= 2) setShowSuggestions(true); }}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             placeholder="Nome da Empresa / Cliente"
                             className="w-full text-base sm:text-lg font-bold bg-transparent border-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0" />
+                        {showSuggestions && clientName.length >= 2 && (() => {
+                            const filtered = clientSuggestions.filter(c => c.name.toLowerCase().includes(clientName.toLowerCase())).slice(0, 5);
+                            return filtered.length > 0 ? (
+                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+                                    {filtered.map(c => (
+                                        <button key={c.id} type="button"
+                                            onMouseDown={(e) => { e.preventDefault(); selectClient(c); }}
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left">
+                                            <div className="w-7 h-7 rounded-lg bg-[#00A868]/10 text-[#00A868] flex items-center justify-center text-xs font-bold shrink-0">{c.name.charAt(0)}</div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
+                                                {c.cnpj && <p className="text-[10px] text-muted-foreground">{c.cnpj}</p>}
+                                            </div>
+                                            {c.negotiations?.length > 0 && (
+                                                <span className="ml-auto text-[9px] bg-[#00A868]/10 text-[#00A868] px-2 py-0.5 rounded-full font-bold shrink-0">Preencher taxas</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null;
+                        })()}
                         <p className="text-[10px] text-muted-foreground">Custo Efetivo Total por parcela e bandeira</p>
                     </div>
                 </div>
@@ -587,10 +648,13 @@ tr:nth-child(even){background:#fafafa}
                                         className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold flex items-center gap-1">
-                                        Adesão <span className="text-[8px] text-blue-400">(R$ {adesaoValor.toFixed(2)}/un)</span>
-                                    </label>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Qtd. Adesão</label>
                                     <input type="number" min={0} value={maqAdesao || ''} onFocus={(e) => e.target.select()} onChange={(e) => setMaqAdesao(parseInt(e.target.value) || 0)}
+                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Valor Adesão (R$/un)</label>
+                                    <input type="number" min={0} step={0.01} value={adesaoValor || ''} onFocus={(e) => e.target.select()} onChange={(e) => setAdesaoValor(parseFloat(e.target.value) || 0)}
                                         className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
                             </div>

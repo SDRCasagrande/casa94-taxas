@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 
 // PUT update a negotiation (edit rates, dates, status, notes, stage)
 export async function PUT(request: Request, { params }: { params: Promise<{ negId: string }> }) {
@@ -61,7 +62,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ negI
 }
 
 // DELETE a negotiation
-export async function DELETE(_request: Request, { params }: { params: Promise<{ negId: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ negId: string }> }) {
     try {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,7 +71,23 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
         const neg = await prisma.negotiation.findUnique({ where: { id: negId }, include: { client: true } });
         if (!neg || neg.client.userId !== session.userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+        // Parse reason from body
+        let reason = "";
+        try { const body = await request.json(); reason = body.reason || ""; } catch { /* no body */ }
+
         await prisma.negotiation.delete({ where: { id: negId } });
+
+        // Audit log
+        await logAudit({
+            userId: session.userId,
+            userName: session.name || "Sistema",
+            action: AUDIT_ACTIONS.DELETE_NEGOTIATION,
+            entityType: "negotiation",
+            entityId: negId,
+            entityName: `${neg.client.name} - ${neg.status}`,
+            reason,
+        });
+
         return NextResponse.json({ ok: true });
     } catch (error) {
         console.error("DELETE negotiations error:", error);
