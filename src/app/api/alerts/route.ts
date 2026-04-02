@@ -86,7 +86,7 @@ export async function GET() {
                 type: "renegotiation",
                 title: r.clientName,
                 subtitle: r.daysLeft <= 0 ? "Renegociação vence HOJE!" : `Renegociação em ${r.daysLeft} dia(s)`,
-                link: "/dashboard/negociacoes",
+                link: "/dashboard/clientes",
                 urgency: r.urgency,
                 id: r.id,
             });

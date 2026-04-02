@@ -44,6 +44,8 @@ export default function DashboardPage() {
     const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState("");
+    const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+    const [rescheduleTarget, setRescheduleTarget] = useState<RenegAlert | null>(null);
 
     useEffect(() => {
         Promise.all([
@@ -92,40 +94,115 @@ export default function DashboardPage() {
             </div>
 
             {/* ═══ Renegotiation Alerts ═══ */}
-            {metrics && metrics.upcomingRenegotiations && metrics.upcomingRenegotiations.length > 0 && (
+            {metrics && metrics.upcomingRenegotiations && metrics.upcomingRenegotiations.filter(a => !dismissedAlerts.has(a.negId)).length > 0 && (
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center"><Bell className="w-3.5 h-3.5 text-amber-500" /></div>
                             Renegociações Próximas
                         </h3>
-                        <span className="text-[10px] bg-amber-500/20 text-amber-600 px-2.5 py-1 rounded-full font-bold">{metrics.upcomingRenegotiations.length} alerta(s)</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-600 px-2.5 py-1 rounded-full font-bold">
+                            {metrics.upcomingRenegotiations.filter(a => !dismissedAlerts.has(a.negId)).length} alerta(s)
+                        </span>
                     </div>
                     <div className="space-y-2">
-                        {metrics.upcomingRenegotiations.map((alert) => {
+                        {metrics.upcomingRenegotiations.filter(a => !dismissedAlerts.has(a.negId)).map((alert) => {
                             const isUrgent = alert.daysLeft <= 0;
                             return (
-                                <Link key={alert.negId} href="/dashboard/negociacoes"
+                                <div key={alert.negId}
                                     className={`flex items-center justify-between p-3 rounded-xl transition-all ${isUrgent
-                                        ? 'bg-red-500/10 hover:bg-red-500/15 border border-red-500/20'
-                                        : 'bg-card hover:bg-muted border border-border'}`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isUrgent ? 'bg-red-500/15' : 'bg-amber-500/15'}`}>
+                                        ? 'bg-red-500/10 border border-red-500/20'
+                                        : 'bg-card border border-border'}`}>
+                                    <Link href="/dashboard/clientes" className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isUrgent ? 'bg-red-500/15' : 'bg-amber-500/15'}`}>
                                             <AlertTriangle className={`w-4 h-4 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-foreground">{alert.clientName}</p>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-foreground truncate">{alert.clientName}</p>
                                             <p className="text-[10px] text-muted-foreground">{alert.stoneCode && `SC: ${alert.stoneCode} · `}Aceita em {fmtDate(alert.dateAccept)}</p>
                                         </div>
+                                    </Link>
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                        <div className={`text-xs font-bold px-2.5 py-1 rounded-lg ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-amber-500/20 text-amber-600'}`}>
+                                            {isUrgent ? 'HOJE!' : `${alert.daysLeft}d`}
+                                        </div>
+                                        <button onClick={() => setRescheduleTarget(alert)}
+                                            className="p-1.5 rounded-lg text-[#00A868] bg-[#00A868]/10 hover:bg-[#00A868]/20 transition-colors" title="Reagendar">
+                                            <CalendarPlus className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button onClick={() => setDismissedAlerts(prev => new Set([...prev, alert.negId]))}
+                                            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Dispensar">
+                                            <XCircle className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
-                                    <div className={`text-xs font-bold px-3 py-1.5 rounded-lg ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-amber-500/20 text-amber-600'}`}>
-                                        {isUrgent ? 'HOJE!' : `${alert.daysLeft}d`}
-                                    </div>
-                                </Link>
+                                </div>
                             );
                         })}
                     </div>
                 </div>
+            )}
+
+            {/* ═══ Reschedule Modal ═══ */}
+            {rescheduleTarget && (
+                <>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={() => setRescheduleTarget(null)} />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                            <div className="px-5 py-4 border-b border-border">
+                                <h3 className="text-sm font-bold text-foreground">Reagendar Renegociação</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">{rescheduleTarget.clientName}</p>
+                            </div>
+                            <div className="p-5 space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Próxima renegociação em:</p>
+                                {[7, 15, 30, 60].map(days => {
+                                    const d = new Date(); d.setDate(d.getDate() + days);
+                                    const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                                    return (
+                                        <button key={days} onClick={() => {
+                                            // Create a task for the renegotiation
+                                            const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + days);
+                                            const fd = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, "0")}-${String(futureDate.getDate()).padStart(2, "0")}`;
+                                            fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ name: "Renegociações" }) }).then(() => {
+                                                // Try to find or create a renegotiations list, then add task
+                                                fetch("/api/tasks").then(r => r.json()).then(data => {
+                                                    const list = data.lists?.find((l: any) => l.name.toLowerCase().includes("renego")) || data.lists?.[0];
+                                                    if (list) {
+                                                        fetch(`/api/tasks/${list.id}/items`, {
+                                                            method: "POST", headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({ title: `Renegociar — ${rescheduleTarget.clientName}`, date: fd, time: "09:00", priority: "high",
+                                                                description: `Stone Code: ${rescheduleTarget.stoneCode}\nData aceite: ${rescheduleTarget.dateAccept}` })
+                                                        });
+                                                    }
+                                                });
+                                            });
+                                            setDismissedAlerts(prev => new Set([...prev, rescheduleTarget.negId]));
+                                            setRescheduleTarget(null);
+                                        }}
+                                            className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border hover:border-[#00A868]/30 hover:bg-[#00A868]/5 transition-all text-left">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-[#00A868]/10 flex items-center justify-center">
+                                                    <CalendarPlus className="w-4 h-4 text-[#00A868]" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-foreground">{days} dias</p>
+                                                    <p className="text-[10px] text-muted-foreground">{dateStr}</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="px-5 py-3 border-t border-border flex justify-end">
+                                <button onClick={() => setRescheduleTarget(null)}
+                                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
 
             {/* ═══ KPI Cards — Top Row ═══ */}
