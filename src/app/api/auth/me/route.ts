@@ -11,7 +11,7 @@ export async function GET() {
     // Fetch fresh data from DB instead of returning stale JWT payload
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, userRole: true, orgId: true, position: true },
     });
 
     if (!user) {

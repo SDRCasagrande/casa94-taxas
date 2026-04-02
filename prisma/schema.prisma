@@ -7,6 +7,118 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ═══════════════════════════════════════════════
+// MULTI-TENANT CORE
+// ═══════════════════════════════════════════════
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String                          // "Casagrande & Rocha"
+  slug      String   @unique               // "casagrande-rocha"
+  cnpj      String   @default("")
+  phone     String   @default("")
+  email     String   @default("")
+  city      String   @default("")
+  state     String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  clients       Client[]
+  taskLists     TaskList[]
+  teamGroups    TeamGroup[]
+  billings      Billing[]
+  aiUsage       AiUsage[]
+  subscriptions OrgSubscription[]
+
+  @@map("organizations")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String   @unique             // "BitTask App", "BitTask AI"
+  slug         String   @unique             // "app", "ai"
+  description  String   @default("")
+  monthlyPrice Float    @default(0)         // 49.90, 29.90
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  subscriptions OrgSubscription[]
+
+  @@map("products")
+}
+
+model OrgSubscription {
+  id        String    @id @default(cuid())
+  orgId     String
+  productId String
+  isActive  Boolean   @default(true)
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id])
+
+  @@unique([orgId, productId])
+  @@map("org_subscriptions")
+}
+
+model Billing {
+  id          String    @id @default(cuid())
+  orgId       String
+  month       String                         // "2026-04"
+  baseAmount  Float     @default(0)          // Produtos ativos
+  overage     Float     @default(0)          // Excedente AI do mês anterior
+  totalAmount Float     @default(0)
+  status      String    @default("nao_gerado") // nao_gerado, aguardando, pago, erro
+  asaasId     String    @default("")         // ID da cobrança no Asaas
+  paymentLink String    @default("")
+  paidAt      DateTime?
+  generatedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, month])
+  @@index([status])
+  @@map("billings")
+}
+
+model AiUsage {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  month     String                            // "2026-04"
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId, month])
+  @@map("ai_usage")
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  orgId     String
+  email     String
+  role      String    @default("agent")      // "admin" ou "agent"
+  token     String    @unique @default(cuid())
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([orgId])
+  @@map("invites")
+}
+
+// ═══════════════════════════════════════════════
+// USERS & AUTH
+// ═══════════════════════════════════════════════
+
 model User {
   id                String   @id @default(cuid())
   email             String   @unique
@@ -14,13 +126,14 @@ model User {
   password          String
   phone             String   @default("")
   notificationEmail String   @default("")
-  isAdmin           Boolean  @default(true)
+  orgId             String?
+  userRole          String   @default("agent") // "super_admin", "admin", "agent"
+  position          String   @default("")      // Custom job title: "Supervisor", "Analista", etc.
   isActive          Boolean  @default(true)
-  roleId            String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  role              Role?    @relation(fields: [roleId], references: [id])
+  org               Organization? @relation(fields: [orgId], references: [id])
   simulations       Simulation[]
   sharedSimulations SimulationShare[]
   clients           Client[]
@@ -34,20 +147,28 @@ model User {
   goals         UserGoal[]
   auditLogs     AuditLog[]
 
+  @@index([orgId])
   @@map("users")
 }
+
+// ═══════════════════════════════════════════════
+// TASKS
+// ═══════════════════════════════════════════════
 
 model TaskList {
   id        String   @id @default(cuid())
   name      String
   userId    String
+  orgId     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org   Organization? @relation(fields: [orgId], references: [id])
   tasks Task[]
 
   @@index([userId])
+  @@index([orgId])
   @@map("task_lists")
 }
 
@@ -97,15 +218,22 @@ model TaskComment {
   @@map("task_comments")
 }
 
+// ═══════════════════════════════════════════════
+// TEAMS
+// ═══════════════════════════════════════════════
+
 model TeamGroup {
   id        String   @id @default(cuid())
   name      String   @unique
+  orgId     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  org     Organization?   @relation(fields: [orgId], references: [id])
   members TeamGroupMember[]
   tasks   Task[]
 
+  @@index([orgId])
   @@map("team_groups")
 }
 
@@ -123,64 +251,17 @@ model TeamGroupMember {
   @@map("team_group_members")
 }
 
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String   @default("")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  permissions RolePermission[]
-  users       User[]
-
-  @@map("roles")
-}
-
-model RolePermission {
-  id         String @id @default(cuid())
-  roleId     String
-  permission String
-
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permission])
-  @@map("role_permissions")
-}
-
-model Simulation {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  data      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shares SimulationShare[]
-
-  @@index([userId])
-  @@map("simulations")
-}
-
-model SimulationShare {
-  id           String   @id @default(cuid())
-  simulationId String
-  sharedWithId String
-  createdAt    DateTime @default(now())
-
-  simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  sharedWith User       @relation(fields: [sharedWithId], references: [id], onDelete: Cascade)
-
-  @@unique([simulationId, sharedWithId])
-  @@map("simulation_shares")
-}
+// ═══════════════════════════════════════════════
+// CLIENTS & NEGOTIATIONS
+// ═══════════════════════════════════════════════
 
 model Client {
   id              String   @id @default(cuid())
   userId          String
+  orgId           String?
   name            String
-  brand           String   @default("STONE") // STONE ou TON
-  safra           String   @default("M0") // M0, M1, M2, M3, BASE
+  brand           String   @default("STONE")
+  safra           String   @default("M0")
   stoneCode       String   @default("")
   cnpj            String   @default("")
   phone           String   @default("")
@@ -189,15 +270,17 @@ model Client {
   credentialDate  String   @default("")
   cancelDate      String   @default("")
   segment         String   @default("")
-  category        String   @default("")  // Custom group: Stone, Ton, Cervantes, etc.
+  category        String   @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org            Organization? @relation(fields: [orgId], references: [id])
   negotiations   Negotiation[]
   monthlyVolumes ClientMonth[]
 
   @@index([userId])
+  @@index([orgId])
   @@map("clients")
 }
 
@@ -235,7 +318,6 @@ model Negotiation {
   alertDate         String   @default("")
   alertSent         Boolean  @default(false)
   
-  // Novos campos para Propostas / Calculadoras
   simulatedTpv      Float    @default(0)
   machineRentExempt Boolean  @default(false)
   machinePurchase   Boolean  @default(false)
@@ -265,6 +347,38 @@ model NegotiationComment {
 
   @@index([negotiationId])
   @@map("negotiation_comments")
+}
+
+// ═══════════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════════
+
+model Simulation {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares SimulationShare[]
+
+  @@index([userId])
+  @@map("simulations")
+}
+
+model SimulationShare {
+  id           String   @id @default(cuid())
+  simulationId String
+  sharedWithId String
+  createdAt    DateTime @default(now())
+
+  simulation Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  sharedWith User       @relation(fields: [sharedWithId], references: [id], onDelete: Cascade)
+
+  @@unique([simulationId, sharedWithId])
+  @@map("simulation_shares")
 }
 
 model UserGoal {
@@ -302,12 +416,12 @@ model AuditLog {
   id          String   @id @default(cuid())
   userId      String
   userName    String
-  action      String   // DELETE_NEGOTIATION, DELETE_CLIENT, CANCEL_CLIENT, DELETE_USER, DELETE_ROLE, etc.
-  entityType  String   // negotiation, client, user, role, task
+  action      String
+  entityType  String
   entityId    String?
   entityName  String?
-  reason      String?  // justification from ConfirmModal
-  metadata    Json?    // extra context
+  reason      String?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -317,4 +431,3 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
-

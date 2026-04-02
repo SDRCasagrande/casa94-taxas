@@ -8,6 +8,8 @@ export interface JWTPayload {
     userId: string;
     email: string;
     name: string;
+    orgId: string;
+    userRole: string; // "super_admin" | "admin" | "agent"
     [key: string]: any;
 }
 
@@ -33,4 +35,14 @@ export async function getSession(): Promise<JWTPayload | null> {
     const token = cookieStore.get('auth-token')?.value;
     if (!token) return null;
     return verifyToken(token);
+}
+
+// Helper to check if user is super admin
+export function isSuperAdmin(session: JWTPayload | null): boolean {
+    return session?.userRole === 'super_admin';
+}
+
+// Helper to check if user is admin or super admin
+export function isAdmin(session: JWTPayload | null): boolean {
+    return session?.userRole === 'super_admin' || session?.userRole === 'admin';
 }

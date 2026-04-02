@@ -5,24 +5,53 @@ import { jwtVerify } from 'jose';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_build';
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
+const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || 'admin.bittask.com.br';
+
 export async function middleware(request: NextRequest) {
     const token = request.cookies.get('auth-token')?.value;
-    const { pathname } = request.nextUrl;
+    const { pathname, hostname } = request.nextUrl;
 
-    async function isAuthenticated(t: string | undefined) {
-        if (!t) return false;
+    async function getPayload(t: string | undefined) {
+        if (!t) return null;
         try {
-            await jwtVerify(t, secretKey);
-            return true;
+            const { payload } = await jwtVerify(t, secretKey);
+            return payload;
         } catch {
-            return false;
+            return null;
         }
     }
-    
-    const isAuth = await isAuthenticated(token);
+
+    const payload = await getPayload(token);
+    const isAuth = !!payload;
+    const isSuperAdmin = payload?.userRole === 'super_admin';
+
+    // ─── ADMIN SUBDOMAIN (admin.bittask.com.br) ───
+    const isAdminHost = hostname === ADMIN_HOSTNAME || hostname === 'admin.localhost';
+
+    if (isAdminHost) {
+        // Public admin paths
+        if (pathname === '/login') {
+            if (isAuth && isSuperAdmin) {
+                return NextResponse.redirect(new URL('/admin', request.url));
+            }
+            return NextResponse.next();
+        }
+
+        // All admin routes require super_admin
+        if (!isAuth) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (!isSuperAdmin) {
+            // Not super admin — show forbidden
+            return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
+        }
+        return NextResponse.next();
+    }
+
+    // ─── APP SUBDOMAIN (app.bittask.com.br) ───
 
     // Public paths
-    const publicPaths = ['/login', '/api/auth/login', '/api/auth/forgot-password', '/api/seed', '/api/google-calendar/callback'];
+    const publicPaths = ['/login', '/convite', '/primeiro-acesso', '/api/auth/login', '/api/auth/forgot-password', '/api/seed', '/api/google-calendar/callback', '/api/billing/webhook'];
     if (publicPaths.some(p => pathname.startsWith(p))) {
         if (pathname === '/login' && isAuth) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -52,5 +81,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/', '/login', '/dashboard/:path*', '/api/:path*'],
+    matcher: ['/', '/login', '/dashboard/:path*', '/api/:path*', '/admin/:path*', '/convite/:path*', '/primeiro-acesso/:path*'],
 };

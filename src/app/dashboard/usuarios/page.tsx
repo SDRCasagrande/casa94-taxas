@@ -4,310 +4,246 @@ import { useState, useEffect, useCallback } from "react";
 import {
     Users, UserPlus, X, ShieldCheck, ShieldOff, Shield,
     KeyRound, Trash2, Loader2, CheckCircle, AlertCircle,
-    Mail, Plus, Save, ChevronDown, ChevronUp
+    Mail, Send
 } from "lucide-react";
-import { PERMISSIONS, PermissionKey } from "@/lib/permissions";
 import { useConfirm } from "@/components/ConfirmModal";
 
 interface User {
     id: string; name: string; email: string; notificationEmail: string;
-    isAdmin: boolean; isActive: boolean; createdAt: string;
-    roleId: string | null; role: { id: string; name: string } | null;
-}
-interface RolePermission { id: string; permission: string; }
-interface Role {
-    id: string; name: string; description: string;
-    permissions: RolePermission[]; _count: { users: number };
+    userRole: string; isActive: boolean; createdAt: string;
 }
 
-type Tab = "equipe" | "cargos";
+type Tab = "equipe" | "convites";
 
-const PERM_GROUPS: Record<string, PermissionKey[]> = {
-    "Ferramentas": ["dashboard.view", "cet.use", "simulator.use", "comparator.use", "tasks.use"],
-    "Clientes & Negociações": ["clients.view", "clients.manage", "negotiations.view", "negotiations.manage"],
-    "Administração": ["users.view", "users.manage", "roles.manage", "settings.view", "reports.export"],
+const ROLE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
+    super_admin: { label: "Super Admin", color: "text-purple-500 bg-purple-500/10", icon: ShieldCheck },
+    admin: { label: "Admin", color: "text-amber-500 bg-amber-500/10", icon: Shield },
+    agent: { label: "Agente", color: "text-blue-500 bg-blue-500/10", icon: Users },
 };
 
 export default function UsuariosPage() {
     const confirmAction = useConfirm();
     const [tab, setTab] = useState<Tab>("equipe");
     const [users, setUsers] = useState<User[]>([]);
-    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
     const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState("agent");
 
-    // Users state
-    const [showNewUser, setShowNewUser] = useState(false);
-    const [newName, setNewName] = useState(""); const [newEmail, setNewEmail] = useState("");
-    const [newPw, setNewPw] = useState(""); const [newNotifEmail, setNewNotifEmail] = useState("");
-    const [saving, setSaving] = useState(false);
+    // Invite state
+    const [showInvite, setShowInvite] = useState(false);
+    const [invEmail, setInvEmail] = useState("");
+    const [invRole, setInvRole] = useState("agent");
+    const [inviting, setInviting] = useState(false);
+
+    // Reset password state
     const [resetId, setResetId] = useState<string | null>(null);
     const [resetPw, setResetPw] = useState("");
 
-    // Roles state
-    const [showNewRole, setShowNewRole] = useState(false);
-    const [roleName, setRoleName] = useState(""); const [roleDesc, setRoleDesc] = useState("");
-    const [rolePerms, setRolePerms] = useState<Set<string>>(new Set());
-    const [expandedId, setExpandedId] = useState<string | null>(null);
-    const [editPerms, setEditPerms] = useState<Set<string>>(new Set());
-
     const load = useCallback(async () => {
         try {
-            const [uRes, rRes] = await Promise.all([fetch("/api/admin/users"), fetch("/api/admin/roles")]);
-            const uData = await uRes.json(); const rData = await rRes.json();
-            if (Array.isArray(uData)) setUsers(uData);
-            if (Array.isArray(rData)) setRoles(rData);
+            const res = await fetch("/api/admin/users");
+            const data = await res.json();
+            if (Array.isArray(data)) setUsers(data);
+            // Get current user role from session
+            const meRes = await fetch("/api/auth/me");
+            const me = await meRes.json();
+            if (me?.userRole) setCurrentUserRole(me.userRole);
         } catch { /* */ } finally { setLoading(false); }
     }, []);
 
     useEffect(() => { load(); }, [load]);
 
-    // ─── User actions ───
-    const createUser = async () => {
-        if (!newName.trim() || !newEmail.trim() || !newPw) { setMsg({ type: "err", text: "Preencha nome, email e senha" }); return; }
-        setSaving(true); setMsg(null);
+    const canManage = currentUserRole === "admin" || currentUserRole === "super_admin";
+
+    // ─── Actions ───
+    const sendInvite = async () => {
+        if (!invEmail.trim()) { setMsg({ type: "err", text: "Email é obrigatório" }); return; }
+        setInviting(true); setMsg(null);
         try {
-            const res = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName, email: newEmail, password: newPw, notificationEmail: newNotifEmail }) });
+            const res = await fetch("/api/teams/invite", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: invEmail, role: invRole }),
+            });
             const data = await res.json();
-            if (res.ok) { setMsg({ type: "ok", text: `Usuário ${data.name} criado!` }); setShowNewUser(false); setNewName(""); setNewEmail(""); setNewPw(""); setNewNotifEmail(""); load(); }
-            else setMsg({ type: "err", text: data.error || "Erro" });
-        } catch { setMsg({ type: "err", text: "Erro de conexão" }); } finally { setSaving(false); }
-    };
-    const toggleActive = async (u: User) => { try { await fetch(`/api/admin/users/${u.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !u.isActive }) }); load(); } catch { /* */ } };
-    const assignRole = async (userId: string, roleId: string | null) => { try { await fetch(`/api/admin/users/${userId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roleId }) }); load(); } catch { /* */ } };
-    const resetPassword = async () => {
-        if (!resetId || !resetPw || resetPw.length < 6) { setMsg({ type: "err", text: "Senha deve ter no mínimo 6 caracteres" }); return; }
-        try { const res = await fetch(`/api/admin/users/${resetId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ newPassword: resetPw }) }); if (res.ok) { setMsg({ type: "ok", text: "Senha resetada!" }); setResetId(null); setResetPw(""); } } catch { /* */ }
-    };
-    const deleteUser = async (id: string, name: string) => {
-        const { confirmed } = await confirmAction({ title: "Excluir Usuário", message: `Excluir ${name}? Todos os dados serão perdidos!`, variant: "danger", confirmText: "Excluir Usuário" });
-        if (!confirmed) return;
-        try { const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" }); const d = await res.json(); if (res.ok) { setMsg({ type: "ok", text: "Usuário excluído" }); load(); } else setMsg({ type: "err", text: d.error || "Erro" }); } catch { /* */ }
+            if (res.ok) {
+                setMsg({ type: "ok", text: `Convite enviado para ${invEmail}!` });
+                setShowInvite(false); setInvEmail(""); setInvRole("agent");
+            } else {
+                setMsg({ type: "err", text: data.error || "Erro" });
+            }
+        } catch { setMsg({ type: "err", text: "Erro de conexão" }); } finally { setInviting(false); }
     };
 
-    // ─── Role actions ───
-    const createRole = async () => {
-        if (!roleName.trim()) { setMsg({ type: "err", text: "Nome é obrigatório" }); return; }
-        setSaving(true); setMsg(null);
+    const toggleActive = async (u: User) => {
         try {
-            const res = await fetch("/api/admin/roles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: roleName, description: roleDesc, permissions: [...rolePerms] }) });
-            const d = await res.json();
-            if (res.ok) { setMsg({ type: "ok", text: `Cargo "${d.name}" criado!` }); setShowNewRole(false); setRoleName(""); setRoleDesc(""); setRolePerms(new Set()); load(); }
-            else setMsg({ type: "err", text: d.error || "Erro" });
-        } catch { setMsg({ type: "err", text: "Erro de conexão" }); } finally { setSaving(false); }
+            await fetch(`/api/admin/users/${u.id}`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isActive: !u.isActive }),
+            });
+            load();
+        } catch { /* */ }
     };
-    const updateRole = async (role: Role) => {
-        setSaving(true); setMsg(null);
-        try { const res = await fetch(`/api/admin/roles/${role.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: role.name, description: role.description, permissions: [...editPerms] }) });
-            if (res.ok) { setMsg({ type: "ok", text: `Cargo "${role.name}" atualizado!` }); setExpandedId(null); load(); } else { const d = await res.json(); setMsg({ type: "err", text: d.error || "Erro" }); }
-        } catch { setMsg({ type: "err", text: "Erro" }); } finally { setSaving(false); }
-    };
-    const deleteRole = async (role: Role) => {
-        const { confirmed } = await confirmAction({ title: "Excluir Cargo", message: `Excluir o cargo "${role.name}"? Usuários com este cargo perderão as permissões.`, variant: "danger", confirmText: "Excluir Cargo" });
-        if (!confirmed) return;
-        try { const res = await fetch(`/api/admin/roles/${role.id}`, { method: "DELETE" }); const d = await res.json(); if (res.ok) { setMsg({ type: "ok", text: "Cargo excluído" }); load(); } else setMsg({ type: "err", text: d.error || "Erro" }); } catch { /* */ }
-    };
-    const toggleExpand = (role: Role) => { if (expandedId === role.id) { setExpandedId(null); return; } setExpandedId(role.id); setEditPerms(new Set(role.permissions.map(p => p.permission))); };
-    const togglePerm = (set: Set<string>, setFn: (s: Set<string>) => void, perm: string) => { const n = new Set(set); if (n.has(perm)) n.delete(perm); else n.add(perm); setFn(n); };
 
-    const PermGrid = ({ perms, setPerms }: { perms: Set<string>; setPerms: (s: Set<string>) => void }) => (
-        <div className="space-y-4">
-            {Object.entries(PERM_GROUPS).map(([group, keys]) => (
-                <div key={group}>
-                    <p className="text-[11px] font-bold uppercase text-muted-foreground mb-2 tracking-wide">{group}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {keys.map(key => (
-                            <label key={key} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all text-sm ${perms.has(key) ? "bg-[#00A868]/10 border-[#00A868]/30 text-[#00A868]" : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/50"}`}>
-                                <input type="checkbox" checked={perms.has(key)} onChange={() => togglePerm(perms, setPerms, key)} className="sr-only" />
-                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${perms.has(key) ? "bg-[#00A868] border-[#00A868]" : "border-muted-foreground/30"}`}>
-                                    {perms.has(key) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                                </div>
-                                {PERMISSIONS[key]}
-                            </label>
-                        ))}
-                    </div>
-                </div>
-            ))}
+    const changeRole = async (userId: string, newRole: string) => {
+        try {
+            await fetch(`/api/admin/users/${userId}`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userRole: newRole }),
+            });
+            load();
+        } catch { /* */ }
+    };
+
+    const resetPassword = async () => {
+        if (!resetId || !resetPw || resetPw.length < 6) { setMsg({ type: "err", text: "Senha mínima: 6 caracteres" }); return; }
+        try {
+            const res = await fetch(`/api/admin/users/${resetId}`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ newPassword: resetPw }),
+            });
+            if (res.ok) { setMsg({ type: "ok", text: "Senha resetada!" }); setResetId(null); setResetPw(""); }
+        } catch { /* */ }
+    };
+
+    const deleteUser = async (u: User) => {
+        const confirmed = await confirmAction({ title: "Remover membro", message: `Tem certeza que deseja remover ${u.name} da equipe?` });
+        if (!confirmed) return;
+        try { await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" }); load(); } catch { /* */ }
+    };
+
+    if (loading) return (
+        <div className="flex-1 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="w-6 h-6 animate-spin text-[#00A868]" />
         </div>
     );
 
-    if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-[#00A868]" /></div>;
-
     return (
-        <div className="max-w-4xl mx-auto space-y-5">
-            {/* Header */}
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#00A868] flex items-center justify-center shadow-lg shadow-[#00A868]/20">
-                        <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-foreground">Equipe & Permissões</h1>
-                        <p className="text-xs text-muted-foreground">{users.length} usuários · {roles.length} cargos</p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-black text-foreground">Equipe</h1>
+                    <p className="text-sm text-muted-foreground">{users.length} membros</p>
                 </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 bg-muted/30 p-1 rounded-xl">
-                <button onClick={() => setTab("equipe")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === "equipe" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                    <Users className="w-4 h-4" /> Equipe
-                </button>
-                <button onClick={() => setTab("cargos")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === "cargos" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                    <Shield className="w-4 h-4" /> Cargos & Permissões
-                </button>
+                {canManage && (
+                    <button onClick={() => setShowInvite(true)} className="btn-primary px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" /> Convidar
+                    </button>
+                )}
             </div>
 
             {/* Message */}
             {msg && (
-                <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${msg.type === "ok" ? "bg-[#00A868]/10 text-[#00A868] border border-[#00A868]/20" : "bg-red-500/10 text-red-600 border border-red-500/20"}`}>
-                    {msg.type === "ok" ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${msg.type === "ok" ? "bg-[#00A868]/10 text-[#00A868]" : "bg-red-500/10 text-red-500"}`}>
+                    {msg.type === "ok" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     {msg.text}
+                    <button onClick={() => setMsg(null)} className="ml-auto"><X className="w-3 h-3" /></button>
                 </div>
             )}
 
-            {/* ═══ TAB: EQUIPE ═══ */}
-            {tab === "equipe" && (
-                <div className="space-y-4">
-                    <div className="flex justify-end">
-                        <button onClick={() => setShowNewUser(!showNewUser)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${showNewUser ? "bg-muted text-muted-foreground" : "bg-[#00A868] hover:bg-[#00A868] text-white shadow-lg shadow-[#00A868]/20"}`}>
-                            {showNewUser ? <><X className="w-4 h-4" /> Cancelar</> : <><UserPlus className="w-4 h-4" /> Novo Usuário</>}
+            {/* Invite Modal */}
+            {showInvite && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="card-elevated rounded-2xl p-6 w-full max-w-md space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-foreground">Convidar Membro</h2>
+                            <button onClick={() => setShowInvite(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
+                            <input type="email" value={invEmail} onChange={e => setInvEmail(e.target.value)} placeholder="email@empresa.com" className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground focus:border-[#00A868] transition-colors" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">Cargo</label>
+                            <select value={invRole} onChange={e => setInvRole(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground">
+                                <option value="agent">Agente</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                {invRole === "admin" ? "Pode convidar membros, resetar senhas e gerenciar equipe" : "Pode usar todas as ferramentas, mas não gerenciar equipe"}
+                            </p>
+                        </div>
+                        <button onClick={sendInvite} disabled={inviting} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#00A868] to-[#00D084] text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                            {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            {inviting ? "Enviando..." : "Enviar Convite"}
                         </button>
                     </div>
-
-                    {showNewUser && (
-                        <div className="card-elevated p-6">
-                            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><UserPlus className="w-5 h-5 text-[#00A868]" /> Criar Novo Usuário</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Nome *</label>
-                                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="João Silva" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Email de login *</label>
-                                    <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="joao@empresa.com" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Senha *</label>
-                                    <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Mínimo 6 caracteres" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Email de notificação</label>
-                                    <input type="email" value={newNotifEmail} onChange={(e) => setNewNotifEmail(e.target.value)} placeholder="joao@gmail.com (opcional)" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                            </div>
-                            <button onClick={createUser} disabled={saving} className="mt-4 flex items-center gap-2 px-6 py-2.5 bg-[#00A868] hover:bg-[#00A868] text-white rounded-xl font-medium disabled:opacity-50">
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} {saving ? "Criando..." : "Criar Usuário"}
-                            </button>
-                        </div>
-                    )}
-
-                    {resetId && (
-                        <div className="bg-card border border-amber-500/20 rounded-2xl p-6">
-                            <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2"><KeyRound className="w-5 h-5 text-amber-500" /> Resetar Senha — {users.find(u => u.id === resetId)?.name}</h2>
-                            <div className="flex gap-3">
-                                <input type="password" value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" className="flex-1 px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground focus:outline-none focus:border-amber-500/50" />
-                                <button onClick={resetPassword} className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-medium">Salvar</button>
-                                <button onClick={() => { setResetId(null); setResetPw(""); }} className="p-2.5 bg-muted text-muted-foreground rounded-xl"><X className="w-5 h-5" /></button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-3">
-                        {users.map((user) => (
-                            <div key={user.id} className={`bg-card border rounded-2xl p-4 transition-all ${user.isActive ? "border-border" : "border-red-500/20 opacity-60"}`}>
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${user.isActive ? "bg-[#00A868]/10 text-[#00A868] border border-[#00A868]/10" : "bg-red-500/10 text-red-500 border border-red-500/10"}`}>
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="text-sm font-semibold text-foreground">{user.name}</p>
-                                                {user.isAdmin && <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-bold">Admin</span>}
-                                                {user.role && <span className="text-[10px] bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full font-bold">{user.role.name}</span>}
-                                                {!user.isActive && <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Inativo</span>}
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                                <select value={user.roleId || ""} onChange={e => assignRole(user.id, e.target.value || null)}
-                                                    className="text-[11px] bg-transparent border border-border rounded-lg px-2 py-0.5 text-muted-foreground focus:outline-none focus:border-[#00A868]/50 max-w-[130px]">
-                                                    <option value="">Sem cargo</option>
-                                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                                </select>
-                                            </div>
-                                            {user.notificationEmail && <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1"><Mail className="w-3 h-3" /> {user.notificationEmail}</p>}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <button onClick={() => toggleActive(user)} className={`p-2 rounded-lg text-xs font-medium transition-all ${user.isActive ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20" : "bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20"}`} title={user.isActive ? "Desativar" : "Ativar"}>
-                                            {user.isActive ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-                                        </button>
-                                        <button onClick={() => { setResetId(user.id); setResetPw(""); }} className="p-2 rounded-lg bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20" title="Resetar senha"><KeyRound className="w-4 h-4" /></button>
-                                        <button onClick={() => deleteUser(user.id, user.name)} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20" title="Excluir"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             )}
 
-            {/* ═══ TAB: CARGOS ═══ */}
-            {tab === "cargos" && (
-                <div className="space-y-4">
-                    <div className="flex justify-end">
-                        <button onClick={() => setShowNewRole(!showNewRole)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${showNewRole ? "bg-muted text-muted-foreground" : "bg-[#00A868] hover:bg-[#00A868] text-white shadow-lg shadow-[#00A868]/20"}`}>
-                            {showNewRole ? <><X className="w-4 h-4" /> Cancelar</> : <><Plus className="w-4 h-4" /> Novo Cargo</>}
+            {/* Reset Password Modal */}
+            {resetId && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="card-elevated rounded-2xl p-6 w-full max-w-md space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-foreground">Resetar Senha</h2>
+                            <button onClick={() => { setResetId(null); setResetPw(""); }}><X className="w-5 h-5 text-muted-foreground" /></button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">Para: {users.find(u => u.id === resetId)?.name}</p>
+                        <input type="password" value={resetPw} onChange={e => setResetPw(e.target.value)} placeholder="Nova senha (mín. 6 chars)" className="w-full px-3 py-2.5 rounded-xl bg-muted/50 border border-border text-sm text-foreground" />
+                        <button onClick={resetPassword} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#00A868] to-[#00D084] text-white font-semibold text-sm">
+                            Resetar Senha
                         </button>
                     </div>
-
-                    {showNewRole && (
-                        <div className="card-elevated p-6 space-y-4">
-                            <h2 className="text-lg font-semibold flex items-center gap-2"><Plus className="w-5 h-5 text-[#00A868]" /> Criar Novo Cargo</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Nome *</label>
-                                    <input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Ex: Consultor Sênior" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                                <div><label className="block text-xs text-muted-foreground font-medium mb-1">Descrição</label>
-                                    <input value={roleDesc} onChange={(e) => setRoleDesc(e.target.value)} placeholder="Breve descrição" className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-xl text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-[#00A868]/50" /></div>
-                            </div>
-                            <PermGrid perms={rolePerms} setPerms={setRolePerms} />
-                            <button onClick={createRole} disabled={saving} className="flex items-center gap-2 px-6 py-2.5 bg-[#00A868] hover:bg-[#00A868] text-white rounded-xl font-medium disabled:opacity-50">
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} {saving ? "Criando..." : "Criar Cargo"}
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="space-y-3">
-                        {roles.map((role) => (
-                            <div key={role.id} className="card-elevated overflow-hidden">
-                                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => toggleExpand(role)}>
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 border border-purple-500/10 flex items-center justify-center shrink-0"><Shield className="w-5 h-5" /></div>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="text-sm font-semibold text-foreground">{role.name}</p>
-                                                <span className="text-[10px] bg-[#00A868]/10 text-[#00A868] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Users className="w-3 h-3" /> {role._count.users}</span>
-                                                <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{role.permissions.length} permissões</span>
-                                            </div>
-                                            {role.description && <p className="text-xs text-muted-foreground truncate">{role.description}</p>}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <button onClick={(e) => { e.stopPropagation(); deleteRole(role); }} className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20"><Trash2 className="w-4 h-4" /></button>
-                                        {expandedId === role.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                                    </div>
-                                </div>
-                                {expandedId === role.id && (
-                                    <div className="p-4 pt-0 border-t border-border space-y-4">
-                                        <PermGrid perms={editPerms} setPerms={setEditPerms} />
-                                        <button onClick={() => updateRole(role)} disabled={saving} className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-medium disabled:opacity-50">
-                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {saving ? "Salvando..." : "Salvar Permissões"}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        {roles.length === 0 && (
-                            <div className="text-center py-16 text-muted-foreground"><Shield className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm">Nenhum cargo cadastrado. Crie o primeiro!</p></div>
-                        )}
-                    </div>
                 </div>
             )}
+
+            {/* Users List */}
+            <div className="space-y-2">
+                {users.map(u => {
+                    const roleInfo = ROLE_LABELS[u.userRole] || ROLE_LABELS.agent;
+                    const RoleIcon = roleInfo.icon;
+                    return (
+                        <div key={u.id} className={`card-elevated rounded-xl p-4 flex items-center gap-4 transition-all ${!u.isActive ? "opacity-50" : ""}`}>
+                            {/* Avatar */}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00A868] to-[#00D084] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                {u.name.charAt(0).toUpperCase()}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-sm text-foreground">{u.name}</p>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${roleInfo.color}`}>
+                                        <RoleIcon className="w-2.5 h-2.5" /> {roleInfo.label}
+                                    </span>
+                                    {!u.isActive && <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Inativo</span>}
+                                </div>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                    <Mail className="w-3 h-3 text-muted-foreground" />
+                                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                </div>
+                            </div>
+
+                            {/* Actions (admin only) */}
+                            {canManage && u.userRole !== "super_admin" && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {/* Role toggle */}
+                                    <select value={u.userRole} onChange={e => changeRole(u.id, e.target.value)} className="text-[10px] px-2 py-1 rounded-lg bg-muted/50 border border-border text-foreground">
+                                        <option value="agent">Agente</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+
+                                    {/* Toggle active */}
+                                    <button onClick={() => toggleActive(u)} title={u.isActive ? "Desativar" : "Ativar"} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                                        {u.isActive ? <ShieldOff className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                                    </button>
+
+                                    {/* Reset password */}
+                                    <button onClick={() => setResetId(u.id)} title="Resetar senha" className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                                        <KeyRound className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* Delete */}
+                                    <button onClick={() => deleteUser(u)} title="Remover" className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

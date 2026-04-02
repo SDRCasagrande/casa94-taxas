@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getSession, isAdmin } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
-// GET all users (admin only)
+// GET all users in current org
 export async function GET() {
     try {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+        const where: any = {};
+        if (session.orgId) where.orgId = session.orgId;
+
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, email: true, phone: true, notificationEmail: true, isAdmin: true, isActive: true, roleId: true, role: { select: { id: true, name: true } }, createdAt: true },
+            where,
+            select: { id: true, name: true, email: true, phone: true, notificationEmail: true, userRole: true, isActive: true, orgId: true, createdAt: true },
             orderBy: { createdAt: 'asc' },
         });
 
@@ -21,20 +25,19 @@ export async function GET() {
     }
 }
 
-// POST create new user (admin only)
+// POST create new user (admin only — invite flow in production, direct create for super_admin)
 export async function POST(request: Request) {
     try {
         const session = await getSession();
-        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session || !isAdmin(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
         const body = await request.json();
-        const { name, email, password, notificationEmail } = body;
+        const { name, email, password, notificationEmail, userRole } = body;
 
         if (!name?.trim() || !email?.trim() || !password) {
             return NextResponse.json({ error: 'Nome, email e senha são obrigatórios' }, { status: 400 });
         }
 
-        // Check duplicate email
         const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
         if (existing) {
             return NextResponse.json({ error: 'Email já cadastrado' }, { status: 409 });
@@ -48,9 +51,10 @@ export async function POST(request: Request) {
                 email: email.trim().toLowerCase(),
                 password: hashedPassword,
                 notificationEmail: notificationEmail?.trim() || '',
-                isAdmin: true,
+                orgId: session.orgId || null,
+                userRole: userRole || 'agent',
             },
-            select: { id: true, name: true, email: true, phone: true, notificationEmail: true, isAdmin: true, isActive: true, createdAt: true },
+            select: { id: true, name: true, email: true, phone: true, notificationEmail: true, userRole: true, isActive: true, createdAt: true },
         });
 
         return NextResponse.json(user, { status: 201 });

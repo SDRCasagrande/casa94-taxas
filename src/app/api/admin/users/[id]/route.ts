@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getSession, isAdmin } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
-// PUT update user (toggle active, reset password)
+// PUT update user (toggle active, reset password, change role)
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getSession();
-        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session || !isAdmin(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         const { id } = await params;
 
         const body = await request.json();
@@ -17,13 +17,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         if (body.name !== undefined) updateData.name = body.name.trim();
         if (body.notificationEmail !== undefined) updateData.notificationEmail = body.notificationEmail.trim();
         if (body.isActive !== undefined) updateData.isActive = body.isActive;
-        if (body.roleId !== undefined) updateData.roleId = body.roleId || null;
+        if (body.userRole !== undefined) updateData.userRole = body.userRole;
         if (body.newPassword) updateData.password = await bcrypt.hash(body.newPassword, 12);
 
         const user = await prisma.user.update({
             where: { id },
             data: updateData,
-            select: { id: true, name: true, email: true, notificationEmail: true, isAdmin: true, isActive: true, roleId: true, role: { select: { id: true, name: true } }, createdAt: true },
+            select: { id: true, name: true, email: true, notificationEmail: true, userRole: true, isActive: true, createdAt: true },
         });
 
         return NextResponse.json(user);
@@ -33,16 +33,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 }
 
-// DELETE user
+// DELETE user (admin only, can't delete yourself)
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getSession();
-        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session || !isAdmin(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         const { id } = await params;
 
-        // Can't delete yourself
         if (id === session.userId) {
             return NextResponse.json({ error: 'Não pode excluir seu próprio usuário' }, { status: 400 });
+        }
+
+        // Ensure user is in same org
+        const target = await prisma.user.findUnique({ where: { id }, select: { orgId: true } });
+        if (!target || (session.orgId && target.orgId !== session.orgId)) {
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
 
         await prisma.user.delete({ where: { id } });

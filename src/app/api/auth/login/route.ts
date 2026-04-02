@@ -26,10 +26,18 @@ export async function POST(request: Request) {
             loginAttempts.delete(email); // Reset after expiration
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { org: { select: { id: true, isActive: true } } },
+        });
         if (!user || !user.isActive) {
             recordWait(email);
             return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
+        }
+
+        // Check if org is active (super_admin has no org)
+        if (user.orgId && user.org && !user.org.isActive) {
+            return NextResponse.json({ error: 'Sua organização está desativada. Entre em contato com o suporte.' }, { status: 403 });
         }
 
         const isValid = await bcrypt.compare(password, user.password);
@@ -41,18 +49,26 @@ export async function POST(request: Request) {
         // Success - clear failed attempts
         loginAttempts.delete(email);
 
-        const token = await signToken({ userId: user.id, email: user.email, name: user.name });
-
-        const response = NextResponse.json({
-            user: { id: user.id, name: user.name, email: user.email },
+        const token = await signToken({
+            userId: user.id,
+            email: user.email,
+            name: user.name,
+            orgId: user.orgId || '',
+            userRole: user.userRole || 'agent',
         });
 
+        const response = NextResponse.json({
+            user: { id: user.id, name: user.name, email: user.email, userRole: user.userRole },
+        });
+
+        const cookieDomain = process.env.COOKIE_DOMAIN || undefined; // e.g. ".bittask.com.br" for cross-subdomain
         response.cookies.set('auth-token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
+            maxAge: 60 * 60 * 24 * 7,
             path: '/',
+            ...(cookieDomain ? { domain: cookieDomain } : {}),
         });
 
         return response;
