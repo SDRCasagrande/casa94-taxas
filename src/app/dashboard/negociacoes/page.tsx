@@ -944,10 +944,10 @@ export default function NegociacoesPage() {
                                     {[...drawerNeg.stageHistory].reverse().map((h: any, i: number) => {
                                         const st = getStage(h.to || h.status);
                                         return (
-                                            <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50">
+                                            <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50 min-w-0">
                                                 <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
-                                                <span className="text-xs font-medium text-foreground">{st.label}</span>
-                                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                                <span className="text-xs font-medium text-foreground shrink-0">{st.label}</span>
+                                                <span className="text-[10px] text-muted-foreground ml-auto truncate min-w-0">
                                                     {fmtDateTime(h.timestamp)}
                                                     {h.userName && ` · ${h.userName}`}
                                                 </span>
@@ -962,7 +962,7 @@ export default function NegociacoesPage() {
                         {drawerNeg.notes && (
                             <div className="space-y-1">
                                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Observações</h4>
-                                <p className="text-xs text-foreground bg-secondary rounded-xl p-3 whitespace-pre-wrap">{drawerNeg.notes}</p>
+                                <p className="text-xs text-foreground bg-secondary rounded-xl p-3 whitespace-pre-wrap break-words">{drawerNeg.notes}</p>
                             </div>
                         )}
 

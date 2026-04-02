@@ -60,10 +60,10 @@ export default function SlideDrawer({ open, onClose, title, subtitle, width = "l
             >
                 {/* Header */}
                 {(title || subtitle) && (
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-                        <div>
-                            {title && <h2 className="text-base font-bold text-foreground">{title}</h2>}
-                            {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0 gap-3">
+                        <div className="min-w-0 flex-1">
+                            {title && <h2 className="text-base font-bold text-foreground truncate">{title}</h2>}
+                            {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
                         </div>
                         <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                             <X className="w-5 h-5" />
