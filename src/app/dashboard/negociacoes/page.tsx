@@ -9,12 +9,14 @@ import { PhoneInput } from "@/components/PhoneInput";
 import {
     Handshake, Plus, X, ChevronLeft, LayoutGrid, List, Search,
     Calendar, CalendarPlus, CalendarDays, MessageSquare, Clock, User, Trash2, CheckCircle,
-    AlertCircle, Loader2, ExternalLink, GripVertical, ArrowRight, FileDown
+    AlertCircle, Loader2, ExternalLink, GripVertical, ArrowRight, FileDown,
+    Flame, Snowflake, Timer
 } from "lucide-react";
 import { generateProposalPDF } from "@/lib/proposal-pdf";
 import { BrandIcon } from "@/components/BrandIcons";
 import { useConfirm } from "@/components/ConfirmModal";
 import { BrandStrip, BrandSelectorModal } from "@/components/BrandSelectorModal";
+import SlideDrawer from "@/components/SlideDrawer";
 
 const BRAND_NAMES = Object.keys(BRAND_PRESETS);
 interface BrandRateSet { [brand: string]: { debit: number; credit1x: number; credit2to6: number; credit7to12: number } }
@@ -46,6 +48,29 @@ function today() { return new Date().toISOString().split("T")[0]; }
 function fmtDate(d: string) { if (!d) return "—"; try { return new Date(d + "T00:00:00").toLocaleDateString("pt-BR"); } catch { return d; } }
 function fmtDateTime(iso: string) { try { return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); } catch { return iso; } }
 function initials(name: string) { return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase(); }
+
+/* ═══ LEAD AGING ═══ */
+function getLeadAge(neg: { dateNeg: string; stageHistory?: any[] }): { days: number; level: "fresh" | "warm" | "hot" | "cold"; label: string; cssClass: string } {
+    const lastAction = neg.stageHistory && neg.stageHistory.length > 0
+        ? new Date(neg.stageHistory[neg.stageHistory.length - 1].timestamp)
+        : new Date(neg.dateNeg + "T00:00:00");
+    const days = Math.floor((Date.now() - lastAction.getTime()) / (1000 * 60 * 60 * 24));
+    if (days <= 2)  return { days, level: "fresh", label: "", cssClass: "" };
+    if (days <= 5)  return { days, level: "warm",  label: `⏰ ${days}d sem ação`, cssClass: "lead-warm" };
+    if (days <= 10) return { days, level: "hot",   label: `🔥 Esfriando`,       cssClass: "lead-hot" };
+    return                  { days, level: "cold",  label: `❄️ Frio (${days}d)`, cssClass: "lead-cold" };
+}
+
+/* ═══ STAGE TRANSITION PROMPTS ═══ */
+const TRANSITION_PROMPTS: Record<string, { emoji: string; message: string; action: string; actionType: "whatsapp" | "task" | "accept" | "reneg" }> = {
+    "prospeccao→proposta_enviada":    { emoji: "📤", message: "Proposta enviada!",      action: "Enviar via WhatsApp?",       actionType: "whatsapp" },
+    "proposta_enviada→aguardando_cliente": { emoji: "⏳", message: "Aguardando retorno.", action: "Criar lembrete em 2 dias?", actionType: "task" },
+    "aguardando_cliente→aprovado":    { emoji: "🎉", message: "Negociação aprovada!",   action: "Registrar data de aceite?",  actionType: "accept" },
+    "*→recusado":                     { emoji: "📅", message: "Negociação recusada.",   action: "Reagendar em 30 dias?",      actionType: "reneg" },
+};
+function getTransitionPrompt(from: string, to: string) {
+    return TRANSITION_PROMPTS[`${from}→${to}`] || TRANSITION_PROMPTS[`*→${to}`] || null;
+}
 
 /* ═══ GOOGLE CALENDAR ═══ */
 function gcalLink(neg: { clientName: string; clientPhone?: string; stoneCode?: string; cnpj?: string; dateNeg: string; rates: RateSnapshot; notes?: string; status: string }) {
@@ -232,6 +257,13 @@ export default function NegociacoesPage() {
     const CARDS_LIMIT = 10;
     const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
+    // Stage Transition Toast
+    const [stageToast, setStageToast] = useState<{ negId: string; neg: any; from: string; to: string; prompt: typeof TRANSITION_PROMPTS[string] } | null>(null);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // SlideDrawer
+    const [drawerNeg, setDrawerNeg] = useState<any | null>(null);
+
     // New client form
     const [fn, setFN] = useState(""); const [fsc, setFSC] = useState(""); const [fcnpj, setFCNPJ] = useState("");
     const [fph, setFPH] = useState(""); const [fem, setFEM] = useState("");
@@ -358,9 +390,66 @@ export default function NegociacoesPage() {
     function onDragLeave() { setDragOverStage(null); }
     async function onDrop(stageId: string) {
         if (dragId && stageId) {
-            await changeStage(dragId, stageId);
+            // Find current stage for transition prompt
+            const neg = allNegs.find(n => n.id === dragId);
+            const fromStage = neg ? normalizeStatus(neg.status) : "";
+            if (fromStage !== stageId) {
+                await changeStage(dragId, stageId);
+                // Show stage transition toast
+                const prompt = getTransitionPrompt(fromStage, stageId);
+                if (prompt && neg) {
+                    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+                    setStageToast({ negId: dragId, neg, from: fromStage, to: stageId, prompt });
+                    toastTimerRef.current = setTimeout(() => setStageToast(null), 8000);
+                }
+            }
         }
         setDragId(null); setDragOverStage(null);
+    }
+
+    function handleToastAction() {
+        if (!stageToast) return;
+        const { neg, prompt } = stageToast;
+        if (prompt.actionType === "whatsapp") {
+            shareWhatsApp(neg);
+        } else if (prompt.actionType === "task") {
+            // Create follow-up task in 2 days
+            const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 2);
+            const fd = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, "0")}-${String(futureDate.getDate()).padStart(2, "0")}`;
+            fetch("/api/tasks").then(r => r.json()).then(data => {
+                const list = data.lists?.find((l: any) => l.name.toLowerCase().includes("follow")) || data.lists?.[0];
+                if (list) {
+                    fetch(`/api/tasks/${list.id}/items`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: `Follow-up — ${neg.clientName}`, date: fd, time: "10:00", priority: "high" })
+                    });
+                }
+            });
+            setMsg({ type: "ok", text: `Lembrete criado para ${neg.clientName} em 2 dias!` });
+        } else if (prompt.actionType === "accept") {
+            // Set dateAccept to today
+            fetch(`/api/negotiations/${stageToast.negId}`, {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dateAccept: today() })
+            }).then(() => loadAll());
+            setMsg({ type: "ok", text: `Data de aceite registrada para ${neg.clientName}!` });
+        } else if (prompt.actionType === "reneg") {
+            // Schedule renegotiation in 30 days
+            const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 30);
+            const fd = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, "0")}-${String(futureDate.getDate()).padStart(2, "0")}`;
+            fetch("/api/tasks").then(r => r.json()).then(data => {
+                const list = data.lists?.[0];
+                if (list) {
+                    fetch(`/api/tasks/${list.id}/items`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: `Renegociar — ${neg.clientName}`, date: fd, time: "09:00", priority: "high" })
+                    });
+                }
+            });
+            setMsg({ type: "ok", text: `Reagendamento em 30 dias criado para ${neg.clientName}!` });
+        }
+        setStageToast(null);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     }
 
     if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-[#00A868]" /></div>;
@@ -410,6 +499,7 @@ export default function NegociacoesPage() {
 
     /* ═══ BOARD VIEW (KANBAN) ═══ */
     return (
+        <>
         <div className="h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-4 gap-3 flex-wrap">
@@ -482,10 +572,23 @@ export default function NegociacoesPage() {
                                             const visible = isExpanded ? stageNegs : stageNegs.slice(0, stageLimit);
                                             const remaining = stageNegs.length - stageLimit;
                                             return (<>
-                                        {visible.map(neg => (
+                                        {visible.map(neg => {
+                                            const age = (stage.id !== "fechado" && stage.id !== "recusado") ? getLeadAge(neg) : { days: 0, level: "fresh" as const, label: "", cssClass: "" };
+                                            return (
                                             <div key={neg.id} draggable
                                                 onDragStart={() => onDragStart(neg.id)}
-                                                className={`card-elevated rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#00A868]/30 transition-all group overflow-hidden ${dragId === neg.id ? "opacity-50 scale-95" : ""}`}>
+                                                onClick={() => setDrawerNeg(neg)}
+                                                className={`card-elevated rounded-xl p-3 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#00A868]/30 transition-all group overflow-hidden ${dragId === neg.id ? "opacity-50 scale-95" : ""} ${age.cssClass}`}>
+                                                {/* Lead Aging Badge */}
+                                                {age.label && (
+                                                    <div className={`flex items-center gap-1 mb-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold w-fit ${
+                                                        age.level === "warm" ? "bg-amber-500/10 text-amber-500"
+                                                        : age.level === "hot" ? "bg-red-500/10 text-red-500"
+                                                        : "bg-indigo-500/10 text-indigo-400"
+                                                    }`}>
+                                                        {age.label}
+                                                    </div>
+                                                )}
                                                 {/* Client + Drag */}
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="w-8 h-8 rounded-lg bg-[#00A868]/10 flex items-center justify-center shrink-0">
@@ -566,7 +669,8 @@ export default function NegociacoesPage() {
                                                     </p>
                                                 )}
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                         {!isExpanded && remaining > 0 && (
                                             <button onClick={() => setExpandedStages(prev => ({ ...prev, [stage.id]: true }))}
                                                 className="w-full py-2 text-[11px] font-medium text-blue-500 hover:bg-blue-500/5 rounded-xl border border-dashed border-blue-500/30 transition-colors">
@@ -640,5 +744,185 @@ export default function NegociacoesPage() {
                 </div>
             )}
         </div>
+
+            {/* ═══ Stage Transition Toast ═══ */}
+            {stageToast && (
+                <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] w-[90%] max-w-md toast-enter">
+                    <div className="bg-card border border-border rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+                        <span className="text-2xl shrink-0">{stageToast.prompt.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-foreground">{stageToast.prompt.message}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{stageToast.neg.clientName}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={handleToastAction}
+                                className="px-3 py-1.5 rounded-xl bg-[#00A868] text-white text-xs font-bold hover:bg-[#008f58] transition-colors shadow-sm">
+                                {stageToast.prompt.action}
+                            </button>
+                            <button onClick={() => { setStageToast(null); if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }}
+                                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                    {/* Auto-dismiss progress bar */}
+                    <div className="mx-4 h-0.5 bg-border rounded-full overflow-hidden mt-1">
+                        <div className="h-full bg-[#00A868] rounded-full" style={{ animation: "shrinkBar 8s linear forwards" }} />
+                    </div>
+                    <style>{`@keyframes shrinkBar { from { width: 100%; } to { width: 0%; } }`}</style>
+                </div>
+            )}
+
+            {/* ═══ Negotiation Detail Drawer ═══ */}
+            <SlideDrawer
+                open={!!drawerNeg}
+                onClose={() => setDrawerNeg(null)}
+                title={drawerNeg?.clientName || ""}
+                subtitle={drawerNeg?.stoneCode ? `SC: ${drawerNeg.stoneCode}` : drawerNeg?.cnpj || ""}
+            >
+                {drawerNeg && (
+                    <div className="p-5 space-y-5">
+                        {/* Status */}
+                        <div className="flex items-center justify-between">
+                            <StageBadge status={drawerNeg.status} />
+                            {(() => {
+                                const age = getLeadAge(drawerNeg);
+                                return age.label ? (
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                        age.level === "warm" ? "bg-amber-500/10 text-amber-500"
+                                        : age.level === "hot" ? "bg-red-500/10 text-red-500"
+                                        : age.level === "cold" ? "bg-indigo-500/10 text-indigo-400"
+                                        : ""
+                                    }`}>{age.label}</span>
+                                ) : null;
+                            })()}
+                        </div>
+
+                        {/* Client Info */}
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dados do Cliente</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="bg-secondary rounded-xl p-3">
+                                    <p className="text-[9px] text-muted-foreground uppercase">CNPJ</p>
+                                    <p className="text-xs font-bold text-foreground">{drawerNeg.cnpj || "—"}</p>
+                                </div>
+                                <div className="bg-secondary rounded-xl p-3">
+                                    <p className="text-[9px] text-muted-foreground uppercase">Telefone</p>
+                                    <p className="text-xs font-bold text-foreground">{drawerNeg.clientPhone || "—"}</p>
+                                </div>
+                                <div className="bg-secondary rounded-xl p-3">
+                                    <p className="text-[9px] text-muted-foreground uppercase">Data Negociação</p>
+                                    <p className="text-xs font-bold text-foreground">{fmtDate(drawerNeg.dateNeg)}</p>
+                                </div>
+                                {drawerNeg.assignee && (
+                                    <div className="bg-secondary rounded-xl p-3">
+                                        <p className="text-[9px] text-muted-foreground uppercase">Responsável</p>
+                                        <p className="text-xs font-bold text-foreground">{drawerNeg.assignee.name}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Rates Summary */}
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Taxas Negociadas</h4>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { l: "Débito", v: drawerNeg.rates.debit },
+                                    { l: "Créd 1x", v: drawerNeg.rates.credit1x },
+                                    { l: "2-6x", v: drawerNeg.rates.credit2to6 },
+                                    { l: "7-12x", v: drawerNeg.rates.credit7to12 },
+                                    { l: "PIX", v: drawerNeg.rates.pix },
+                                    { l: "RAV", v: drawerNeg.rates.ravRate ?? drawerNeg.rates.rav },
+                                ].map(r => (
+                                    <div key={r.l} className="bg-[#00A868]/5 border border-[#00A868]/10 rounded-xl p-2.5 text-center">
+                                        <p className="text-[9px] text-muted-foreground uppercase font-bold">{r.l}</p>
+                                        <p className="text-sm font-black text-[#00A868]">{formatPercent(r.v)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Stage History */}
+                        {drawerNeg.stageHistory && drawerNeg.stageHistory.length > 0 && (
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Histórico</h4>
+                                <div className="space-y-1">
+                                    {[...drawerNeg.stageHistory].reverse().map((h: any, i: number) => {
+                                        const st = getStage(h.to || h.status);
+                                        return (
+                                            <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-secondary/50">
+                                                <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
+                                                <span className="text-xs font-medium text-foreground">{st.label}</span>
+                                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                                    {fmtDateTime(h.timestamp)}
+                                                    {h.userName && ` · ${h.userName}`}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Notes */}
+                        {drawerNeg.notes && (
+                            <div className="space-y-1">
+                                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Observações</h4>
+                                <p className="text-xs text-foreground bg-secondary rounded-xl p-3 whitespace-pre-wrap">{drawerNeg.notes}</p>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="space-y-2 pt-2 border-t border-border">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ações</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => { shareWhatsApp(drawerNeg); setDrawerNeg(null); }}
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#00A868]/10 text-[#00A868] text-xs font-bold hover:bg-[#00A868]/20 transition-colors">
+                                    <MessageSquare className="w-4 h-4" /> WhatsApp
+                                </button>
+                                <a href={gcalLink(drawerNeg)} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 text-blue-500 text-xs font-bold hover:bg-blue-500/20 transition-colors">
+                                    <CalendarPlus className="w-4 h-4" /> Agendar
+                                </a>
+                                <button onClick={() => {
+                                    generateProposalPDF(
+                                        { name: drawerNeg.clientName, stoneCode: drawerNeg.stoneCode, cnpj: drawerNeg.cnpj, phone: drawerNeg.clientPhone },
+                                        drawerNeg,
+                                        "Agente"
+                                    );
+                                    setDrawerNeg(null);
+                                }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/10 text-purple-500 text-xs font-bold hover:bg-purple-500/20 transition-colors">
+                                    <FileDown className="w-4 h-4" /> Exportar PDF
+                                </button>
+                                {normalizeStatus(drawerNeg.status) !== "fechado" && normalizeStatus(drawerNeg.status) !== "recusado" && (
+                                    <button onClick={() => {
+                                        const idx = STAGES.findIndex(s => s.id === normalizeStatus(drawerNeg.status));
+                                        if (idx < STAGES.length - 2) { changeStage(drawerNeg.id, STAGES[idx + 1].id); setDrawerNeg(null); }
+                                    }} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-secondary text-foreground text-xs font-bold hover:bg-muted transition-colors">
+                                        <ArrowRight className="w-4 h-4" /> Avançar Etapa
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Stage selector */}
+                            <div className="pt-2">
+                                <select
+                                    value={normalizeStatus(drawerNeg.status)}
+                                    onChange={e => { changeStage(drawerNeg.id, e.target.value); setDrawerNeg(null); }}
+                                    className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-xs font-medium focus:outline-none">
+                                    {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                                </select>
+                            </div>
+
+                            <button onClick={() => { deleteNeg(drawerNeg.id); setDrawerNeg(null); }}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-xs font-bold hover:bg-red-500/20 transition-colors mt-2">
+                                <Trash2 className="w-4 h-4" /> Excluir Negociação
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </SlideDrawer>
+        </>
     );
 }

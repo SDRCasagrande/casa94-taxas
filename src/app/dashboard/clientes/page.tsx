@@ -74,7 +74,7 @@ export default function ClientesPage() {
 
     const [tpvMonth, setTpvMonth] = useState(currentMonth());
     const [tpvD, setTpvD] = useState(""); const [tpvC, setTpvC] = useState(""); const [tpvP, setTpvP] = useState("");
-    const [rD, setRD] = useState(""); const [rC, setRC] = useState(""); const [rP, setRP] = useState("");
+    const [rD, setRD] = useState(""); const [rC, setRC] = useState(""); const [rP, setRP] = useState(""); const [rR, setRR] = useState("");
     const [tpvSaving, setTpvSaving] = useState(false);
     const [showBreakdown, setShowBreakdown] = useState(false);
     const [tpvTotal, setTpvTotal] = useState("");
@@ -445,11 +445,12 @@ export default function ClientesPage() {
                         const rd = parseFloat(rD) || lastNeg?.rates?.debit || 0;
                         const rc = parseFloat(rC) || lastNeg?.rates?.credit1x || 0;
                         const rp = parseFloat(rP) || lastNeg?.rates?.pix || 0;
+                        const rr = parseFloat(rR) || lastNeg?.rates?.rav || 0;
                         try {
                             await fetch(`/api/clients/${sel.id}/months`, { method: "POST", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ month: tpvMonth, tpvDebit: effectiveD, tpvCredit: effectiveC, tpvPix: effectiveP, rateDebit: rd, rateCredit: rc, ratePix: rp })
+                                body: JSON.stringify({ month: tpvMonth, tpvDebit: effectiveD, tpvCredit: effectiveC, tpvPix: effectiveP, rateDebit: rd, rateCredit: rc, ratePix: rp, rateRav: rr })
                             });
-                            loadClients(); setTpvD(""); setTpvC(""); setTpvP(""); setTpvTotal(""); setRD(""); setRC(""); setRP("");
+                            loadClients(); setTpvD(""); setTpvC(""); setTpvP(""); setTpvTotal(""); setRD(""); setRC(""); setRP(""); setRR("");
                         } catch { } finally { setTpvSaving(false); }
                     };
 
@@ -457,9 +458,30 @@ export default function ClientesPage() {
                     <div className="bg-card border border-blue-500/20 rounded-xl p-5 space-y-4">
                         <h3 className="text-sm font-bold text-blue-500 uppercase">Registrar TPV do Mês</h3>
 
-                        {/* Month selector */}
-                        <div><label className="text-xs font-medium text-muted-foreground block mb-1">Mês</label>
-                            <input type="month" value={tpvMonth} onChange={e => setTpvMonth(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50 [color-scheme:dark]" /></div>
+                        {/* Month selector UI */}
+                        <div>
+                            <label className="text-xs font-medium text-muted-foreground block mb-2">Mês de Referência</label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {[0, 1, 2, 3].map(mOff => {
+                                    const d = new Date(); d.setMonth(d.getMonth() - mOff);
+                                    const mVal = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                                    const lbl = mOff === 0 ? "Mês Atual" : mOff === 1 ? "Mês Passado" : fmtMonth(mVal);
+                                    return (
+                                        <button key={mVal} type="button" onClick={() => setTpvMonth(mVal)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${tpvMonth === mVal ? "bg-blue-600 text-white" : "bg-card border border-border text-muted-foreground hover:bg-muted"}`}>
+                                            {lbl}
+                                        </button>
+                                    );
+                                })}
+                                <div className="relative">
+                                    <input type="month" value={tpvMonth} onChange={e => setTpvMonth(e.target.value)} 
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                    <button type="button" className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border text-muted-foreground hover:bg-muted flex items-center gap-1">
+                                        <Calendar className="w-3.5 h-3.5" /> Outro...
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* TPV Total — Primary Input */}
                         <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/20 rounded-xl p-4">
@@ -499,14 +521,18 @@ export default function ClientesPage() {
                         )}
 
                         {/* Rates */}
-                        <p className="text-xs text-muted-foreground">Taxas: preenchidas automaticamente da última negociação, ou personalize:</p>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div><label className="text-xs font-medium text-muted-foreground block mb-1">Taxa Débito (%)</label>
-                                <input type="number" step="0.01" value={rD} onChange={e => setRD(e.target.value)} placeholder={lastNeg?.rates?.debit?.toString() || "0"} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
-                            <div><label className="text-xs font-medium text-muted-foreground block mb-1">Taxa Crédito (%)</label>
-                                <input type="number" step="0.01" value={rC} onChange={e => setRC(e.target.value)} placeholder={lastNeg?.rates?.credit1x?.toString() || "0"} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
-                            <div><label className="text-xs font-medium text-muted-foreground block mb-1">Taxa PIX (%)</label>
-                                <input type="number" step="0.01" value={rP} onChange={e => setRP(e.target.value)} placeholder={lastNeg?.rates?.pix?.toString() || "0"} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
+                        <div className="flex items-end justify-between">
+                            <p className="text-xs text-muted-foreground">Taxas da negociação ou personalize:</p>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div><label className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase">Taxa Déb (%)</label>
+                                <input type="number" step="0.01" value={rD} onChange={e => setRD(e.target.value)} placeholder={lastNeg?.rates?.debit?.toString() || "0"} className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-[#00A868]/50" /></div>
+                            <div><label className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase">Taxa Créd (%)</label>
+                                <input type="number" step="0.01" value={rC} onChange={e => setRC(e.target.value)} placeholder={lastNeg?.rates?.credit1x?.toString() || "0"} className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-[#00A868]/50" /></div>
+                            <div><label className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase">Taxa PIX (%)</label>
+                                <input type="number" step="0.01" value={rP} onChange={e => setRP(e.target.value)} placeholder={lastNeg?.rates?.pix?.toString() || "0"} className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-[#00A868]/50" /></div>
+                            <div><label className="text-[10px] font-medium text-muted-foreground block mb-1 uppercase">Taxa RAV (%)</label>
+                                <input type="number" step="0.01" value={rR} onChange={e => setRR(e.target.value)} placeholder={lastNeg?.rates?.rav?.toString() || "0"} className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-[#00A868]/50" /></div>
                         </div>
 
                         {/* Preview */}
@@ -586,10 +612,26 @@ export default function ClientesPage() {
                                     <textarea value={negNotes} onChange={e => setNegNotes(e.target.value)} rows={2} placeholder="Notas sobre a renegociação..."
                                         className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none resize-none" /></div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div><label className="text-xs font-medium text-muted-foreground block mb-1">🔔 Alerta de Renegociação</label>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="text-xs font-medium text-muted-foreground block mb-1">🔔 Alerta de Renegociação</label>
                                         <input type="date" value={negAlertDate} onChange={e => setNegAlertDate(e.target.value)}
                                             className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none [color-scheme:dark]" />
-                                        <p className="text-[9px] text-muted-foreground/60 mt-0.5">Agendar lembrete para renegociar</p>
+                                        <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-1 scrollbar-none">
+                                            {[30, 60, 90, 180].map(d => (
+                                                <button key={d} type="button" onClick={() => {
+                                                    const date = new Date();
+                                                    date.setDate(date.getDate() + d);
+                                                    setNegAlertDate(date.toISOString().split("T")[0]);
+                                                }} className="px-2 py-0.5 rounded-md bg-secondary border border-border text-[9px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted whitespace-nowrap shrink-0">
+                                                    +{d} dias
+                                                </button>
+                                            ))}
+                                            {negAlertDate && (
+                                                <button type="button" onClick={() => setNegAlertDate("")} className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-medium hover:bg-red-500/20 whitespace-nowrap shrink-0">
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     {negAlertDate && (
                                         <div className="flex items-end pb-1">

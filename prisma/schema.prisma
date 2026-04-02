@@ -294,6 +294,7 @@ model ClientMonth {
   rateDebit  Float    @default(0)
   rateCredit Float    @default(0)
   ratePix    Float    @default(0)
+  rateRav    Float    @default(0)
   notes      String   @default("")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

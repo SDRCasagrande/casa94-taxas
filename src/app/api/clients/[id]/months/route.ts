@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!client || client.userId !== session.userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const body = await request.json();
-        const { month, tpvDebit, tpvCredit, tpvPix, rateDebit, rateCredit, ratePix, notes } = body;
+        const { month, tpvDebit, tpvCredit, tpvPix, rateDebit, rateCredit, ratePix, rateRav, notes } = body;
 
         if (!month) return NextResponse.json({ error: "Month is required (YYYY-MM)" }, { status: 400 });
 
@@ -49,6 +49,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 rateDebit: rateDebit || 0,
                 rateCredit: rateCredit || 0,
                 ratePix: ratePix || 0,
+                // @ts-ignore
+                rateRav: rateRav || 0,
                 notes: notes || "",
             },
             update: {
@@ -58,6 +60,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 rateDebit: rateDebit ?? undefined,
                 rateCredit: rateCredit ?? undefined,
                 ratePix: ratePix ?? undefined,
+                // @ts-ignore
+                rateRav: rateRav ?? undefined,
                 notes: notes !== undefined ? notes : undefined,
             },
         });

@@ -13,6 +13,7 @@ import {
 import ActivityPanel from "@/components/ActivityPanel";
 import GoalsWidget from "@/components/GoalsWidget";
 import AIInsights from "@/components/AIInsights";
+import TodayTimeline from "@/components/TodayTimeline";
 
 interface RenegAlert { negId: string; clientId: string; clientName: string; stoneCode: string; dateAccept: string; renegDate: string; daysLeft: number }
 interface Pipeline { prospeccao: number; proposta_enviada: number; aguardando_cliente: number; aprovado: number; recusado: number; fechado: number }
@@ -302,9 +303,16 @@ export default function DashboardPage() {
                 )}
             </div>
 
-            {/* ═══ Visual Charts Row ═══ */}
+            {/* ═══ Today Timeline + Charts ═══ */}
             {metrics && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Timeline do Dia */}
+                    <div className="lg:col-span-1 lg:order-last">
+                        <TodayTimeline />
+                    </div>
+
+                    {/* Visual Charts — 2/3 */}
+                    <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Conversion Donut */}
                     <div className="card-elevated p-5">
                         <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
@@ -382,6 +390,7 @@ export default function DashboardPage() {
                             </div>
                         )}
                     </div>
+                    </div>
                 </div>
             )}
 
@@ -442,6 +451,7 @@ export default function DashboardPage() {
                         ))}
                     </div>
                 </div>
+
             </div>
 
             {/* ═══ Recent Clients ═══ */}

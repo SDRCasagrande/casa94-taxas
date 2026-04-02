@@ -356,68 +356,116 @@ export default function PropostaPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                 {/* Stone Rates — multi-brand */}
                 <div className="md:col-span-3 card-elevated rounded-xl p-4 border-[1px] border-[#00A868]/20">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Percent className="w-4 h-4 text-[#00A868]" />
-                        <h3 className="text-xs font-bold text-[#00A868] uppercase tracking-wider">Taxas Stone</h3>
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#00A868]" />
+                            <h3 className="text-xs font-bold text-[#00A868] uppercase tracking-wider">Taxas por Bandeira</h3>
+                        </div>
+                        <span className="text-[10px] text-[#00A868] font-medium">{BRANDS.length} ativas</span>
                     </div>
-                    <div className="flex gap-0.5 mb-2 flex-wrap items-center">
-                        {BRANDS.map((b) => (
-                            <div key={b} className="relative group">
-                                <button onClick={() => setActiveBrand(b)}
-                                    className={`px-1.5 py-0.5 text-[10px] rounded font-semibold transition-all flex items-center gap-1 ${activeBrand === b
-                                        ? "bg-[#00A868]/20 text-[#00A868] ring-1 ring-[#00A868]/40"
-                                        : "bg-secondary text-muted-foreground hover:bg-muted"
-                                        }`}>
-                                    <BrandIcon brand={b} size={10} />
-                                    {b}
-                                </button>
-                                {!BRAND_PRESETS[b] && (
-                                    <button onClick={() => {
-                                        const next = { ...brandRates }; delete next[b];
-                                        setBrandRates(next);
-                                        if (activeBrand === b) setActiveBrand(Object.keys(next)[0]);
-                                    }} className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 text-white rounded-full text-[7px] leading-none hidden group-hover:flex items-center justify-center">x</button>
-                                )}
-                            </div>
-                        ))}
+
+                    <div className="space-y-1.5">
+                        {Array.from(new Set([...Object.keys(BRAND_PRESETS), ...Object.keys(brandRates)])).map((b) => {
+                            const isEnabled = !!brandRates[b];
+                            const isSelected = activeBrand === b && isEnabled;
+                            const bRates = brandRates[b] || BRAND_PRESETS[b] || { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 };
+                            
+                            return (
+                                <div key={b} className={`rounded-xl transition-all overflow-hidden ${
+                                    isSelected ? "bg-[#00A868]/5 border-2 border-[#00A868] shadow-sm shadow-[#00A868]/10"
+                                        : isEnabled ? "bg-[#00A868]/5 border border-[#00A868]/20"
+                                            : "bg-secondary/30 border border-border/50"
+                                }`}>
+                                    <div className="flex items-center gap-0 px-1.5 py-1.5">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (isEnabled) {
+                                                    const next = { ...brandRates }; delete next[b];
+                                                    setBrandRates(next);
+                                                    if (activeBrand === b) { setActiveBrand(Object.keys(next)[0] || ""); }
+                                                } else {
+                                                    setBrandRates({ ...brandRates, [b]: BRAND_PRESETS[b] || { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
+                                                    setActiveBrand(b);
+                                                }
+                                            }}
+                                            className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center text-sm font-bold transition-all mr-1.5 ${
+                                                isEnabled ? "bg-[#00A868] text-white shadow-sm shadow-[#00A868]/30" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                                            }`} title={isEnabled ? "Desativar" : "Ativar"}>
+                                            {isEnabled ? "✓" : "✗"}
+                                        </button>
+
+                                        <button
+                                            onClick={() => { if (isEnabled) setActiveBrand(isSelected ? "" : b); }}
+                                            className={`flex-1 flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${isEnabled ? "hover:bg-[#00A868]/5 cursor-pointer" : "cursor-default"}`}>
+                                            <BrandIcon brand={b} size={12} />
+                                            <span className={`text-xs font-bold truncate ${isEnabled ? "text-foreground" : "text-muted-foreground/50 line-through"}`}>{b}</span>
+                                            {isEnabled && (
+                                                <span className="ml-auto text-[9px] text-muted-foreground hidden lg:inline-block">
+                                                    {bRates.debit > 0 ? `Déb ${formatPercent(bRates.debit)}` : ""}
+                                                </span>
+                                            )}
+                                        </button>
+
+                                        {!BRAND_PRESETS[b] && !isEnabled && (
+                                            <button onClick={() => {
+                                                const next = { ...brandRates }; delete next[b]; setBrandRates(next);
+                                                if (activeBrand === b) setActiveBrand(Object.keys(next)[0] || "");
+                                            }} className="w-7 h-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center text-xs hover:bg-red-500/20 transition-colors shrink-0">🗑</button>
+                                        )}
+
+                                        {isEnabled && (
+                                            <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0 ${isSelected ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                        )}
+                                    </div>
+
+                                    {isSelected && (
+                                        <div className="px-2 pb-2 pt-1 border-t border-[#00A868]/10 grid grid-cols-2 gap-1.5">
+                                            <RI l="Debito" v={bRates.debit} set={(v) => setBrandRates({ ...brandRates, [b]: { ...bRates, debit: v } })} />
+                                            <RI l="Cred 1x" v={bRates.credit1x} set={(v) => setBrandRates({ ...brandRates, [b]: { ...bRates, credit1x: v } })} />
+                                            <RI l="2-6x" v={bRates.credit2to6} set={(v) => setBrandRates({ ...brandRates, [b]: { ...bRates, credit2to6: v } })} />
+                                            <RI l="7-12x" v={bRates.credit7to12} set={(v) => setBrandRates({ ...brandRates, [b]: { ...bRates, credit7to12: v } })} />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+
+                        {/* Add Brand */}
                         {showNewBrand ? (
-                            <div className="flex items-center gap-0.5">
+                            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-[#00A868]/5 border border-[#00A868]/20 mt-2">
                                 <input type="text" value={newBrandInput} autoFocus
                                     onChange={(e) => setNewBrandInput(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && newBrandInput.trim()) {
                                             const name = newBrandInput.trim();
                                             if (!brandRates[name]) {
-                                                setBrandRates({ ...brandRates, [name]: BRAND_PRESETS[name] || { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
+                                                setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
                                                 setActiveBrand(name);
                                             }
                                             setNewBrandInput(""); setShowNewBrand(false);
                                         }
                                         if (e.key === "Escape") { setNewBrandInput(""); setShowNewBrand(false); }
                                     }}
-                                    placeholder="NOME"
-                                    className="w-20 px-1 py-0.5 text-[10px] rounded bg-secondary border border-[#00A868]/40 text-foreground focus:ring-1 focus:ring-[#00A868]" />
+                                    placeholder="Nome (Ex: SOROCRED)"
+                                    className="flex-1 px-2.5 py-1.5 text-xs rounded-lg bg-secondary border border-[#00A868]/30 text-foreground focus:ring-1 focus:ring-[#00A868]" />
                                 <button onClick={() => {
                                     const name = newBrandInput.trim();
                                     if (name && !brandRates[name]) {
-                                        setBrandRates({ ...brandRates, [name]: BRAND_PRESETS[name] || { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
+                                        setBrandRates({ ...brandRates, [name]: { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 } });
                                         setActiveBrand(name);
                                     }
                                     setNewBrandInput(""); setShowNewBrand(false);
-                                }} className="text-[10px] text-[#00A868] hover:text-emerald-300">OK</button>
+                                }} className="px-3 py-1.5 text-xs rounded-lg bg-[#00A868] text-white font-bold hover:bg-[#008f58] transition-colors">OK</button>
                                 <button onClick={() => { setNewBrandInput(""); setShowNewBrand(false); }}
-                                    className="text-[10px] text-red-400 hover:text-red-300">X</button>
+                                    className="px-2 py-1.5 text-xs rounded-lg bg-secondary text-muted-foreground hover:bg-muted transition-colors">✕</button>
                             </div>
                         ) : (
                             <button onClick={() => setShowNewBrand(true)}
-                                className="px-1.5 py-0.5 text-[10px] rounded font-semibold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 transition-all">+</button>
+                                className="w-full flex items-center justify-center gap-1.5 mt-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#00A868]/10 text-[#00A868] hover:bg-[#00A868]/20 transition-colors border border-dashed border-[#00A868]/20">
+                                <span className="text-sm">+</span> Adicionar Personalizada
+                            </button>
                         )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        <RI l="Debito" v={sr.debit} set={(v) => setSR((p) => ({ ...p, debit: v }))} />
-                        <RI l="Cred 1x" v={sr.credit1x} set={(v) => setSR((p) => ({ ...p, credit1x: v }))} />
-                        <RI l="2-6x" v={sr.credit2to6} set={(v) => setSR((p) => ({ ...p, credit2to6: v }))} />
-                        <RI l="7-12x" v={sr.credit7to12} set={(v) => setSR((p) => ({ ...p, credit7to12: v }))} />
                     </div>
 
                     {/* PIX + RAV — separados das bandeiras */}
