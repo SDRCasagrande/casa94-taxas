@@ -15,7 +15,7 @@ import {
 
 interface TaskData {
     id: string; title: string; description: string; completed: boolean; date: string; time: string;
-    starred: boolean; scheduled: boolean; priority: string; listId: string; createdById: string;
+    dueDate?: string; starred: boolean; scheduled: boolean; priority: string; listId: string; createdById: string;
     assigneeId: string | null;
     assignee: { id: string; name: string; email: string } | null;
     createdBy: { id: string; name: string };

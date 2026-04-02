@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 /**
  * Auto-archive negotiations that have been in "fechado" or "recusada" status
@@ -8,6 +9,8 @@ import { prisma } from "@/lib/prisma";
  */
 export async function POST() {
     try {
+        const session = await getSession();
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -31,6 +34,8 @@ export async function POST() {
 // GET to check stats
 export async function GET() {
     try {
+        const session = await getSession();
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

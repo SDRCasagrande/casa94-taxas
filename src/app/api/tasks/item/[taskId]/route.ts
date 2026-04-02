@@ -12,11 +12,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ task
         const { taskId } = await params;
         const body = await request.json();
 
-        // Get existing task first (for calendar sync)
         const existingTask = await prisma.task.findUnique({
             where: { id: taskId },
-            select: { googleCalendarEventId: true, title: true, date: true, time: true, description: true, completed: true, assigneeId: true, dueDate: true },
+            select: { googleCalendarEventId: true, title: true, date: true, time: true, description: true, completed: true, assigneeId: true, dueDate: true, list: { select: { userId: true } }, createdById: true },
         });
+        if (!existingTask) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        // Ownership: must be creator, assignee, or list owner
+        if (existingTask.list.userId !== session.userId && existingTask.createdById !== session.userId && existingTask.assigneeId !== session.userId) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data: any = {};
@@ -145,11 +149,15 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ taskId:
 
         const { taskId } = await params;
 
-        // Get task before deleting (for calendar sync)
+        // Get task before deleting (for calendar sync + ownership check)
         const task = await prisma.task.findUnique({
             where: { id: taskId },
-            select: { googleCalendarEventId: true },
+            select: { googleCalendarEventId: true, list: { select: { userId: true } }, createdById: true },
         });
+        if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        if (task.list.userId !== session.userId && task.createdById !== session.userId) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         // Delete calendar event if exists
         if (task?.googleCalendarEventId) {
