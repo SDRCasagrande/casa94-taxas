@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ActivityPanel from "@/components/ActivityPanel";
 import GoalsWidget from "@/components/GoalsWidget";
+import AIInsights from "@/components/AIInsights";
 
 interface RenegAlert { negId: string; clientId: string; clientName: string; stoneCode: string; dateAccept: string; renegDate: string; daysLeft: number }
 interface Pipeline { prospeccao: number; proposta_enviada: number; aguardando_cliente: number; aprovado: number; recusado: number; fechado: number }
@@ -169,6 +170,9 @@ export default function DashboardPage() {
 
             {/* ═══ Goals Widget ═══ */}
             <GoalsWidget />
+
+            {/* ═══ AI Insights ═══ */}
+            <AIInsights />
 
             {/* ═══ Pipeline Stage Overview ═══ */}
             <div className="card-elevated p-5">
