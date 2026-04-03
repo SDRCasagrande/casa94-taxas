@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-    DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+    DndContext, closestCenter, PointerSensor, TouchSensor, MouseSensor, KeyboardSensor, useSensor, useSensors,
     DragEndEvent, DragStartEvent, DragOverlay
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -101,7 +101,9 @@ export default function KanbanBoard({ tasks, onToggle, onUpdate, onSelect }: Kan
     const [activeId, setActiveId] = useState<string | null>(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+        useSensor(KeyboardSensor)
     );
 
     const pendingTasks = tasks.filter(t => !t.completed);

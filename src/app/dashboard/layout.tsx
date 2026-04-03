@@ -81,7 +81,7 @@ export default function DashboardLayout({
 
     async function handleLogout() {
         await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
+        window.location.href = "/login";
     }
 
     const currentNav = ALL_NAV.find((item) => item.href === pathname);

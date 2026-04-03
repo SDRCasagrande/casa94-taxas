@@ -22,7 +22,8 @@ Regras:
 5. Quando sugerir taxas, use sempre formato XX,XX%
 6. Não invente dados — se não tem informação, peça ao agente
 7. Mantenha um tom profissional mas amigável
-8. Quando relevante, sugira ações específicas no sistema (ex: "vá em Pipeline > Prospecção")`;
+8. Quando relevante, sugira ações específicas no sistema (ex: "vá em Pipeline > Prospecção")
+9. NUNCA responda perguntas que NÃO sejam sobre o BitTask, gestão de carteira, taxas, negociações, tarefas ou adquirência. Se perguntarem algo fora do escopo (ex: receitas, código, história, clima), diga educadamente que só pode ajudar com temas do BitTask.`;
 
 export async function askLizze(
     question: string,

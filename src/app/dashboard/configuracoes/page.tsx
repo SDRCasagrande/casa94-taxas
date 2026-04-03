@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import {
     Settings, User, Lock, Save, Loader2,
-    CheckCircle, AlertCircle, Calendar, ExternalLink, Unlink
+    CheckCircle, AlertCircle, Calendar, ExternalLink, Unlink,
+    CreditCard, FileText, ArrowRight
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmModal";
+
+type Tab = "profile" | "integrations" | "billing";
 
 export default function ConfiguracoesPage() {
     const confirmAction = useConfirm();
@@ -25,6 +28,13 @@ export default function ConfiguracoesPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+    // Navigation and Billing State
+    const [activeTab, setActiveTab] = useState<Tab>("profile");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [billingData, setBillingData] = useState<{ subscriptions: any[]; billings: any[] } | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [loadingBilling, setLoadingBilling] = useState(true);
 
     // Google Calendar state
     const [gcalConnected, setGcalConnected] = useState(false);
@@ -53,6 +63,19 @@ export default function ConfiguracoesPage() {
             })
             .catch(() => {})
             .finally(() => setGcalLoading(false));
+
+        // Check billing
+        fetch("/api/user/billing")
+            .then(async (r) => {
+                if (r.ok) {
+                    setIsAdmin(true);
+                    setBillingData(await r.json());
+                } else {
+                    setIsAdmin(false);
+                }
+            })
+            .catch(() => setIsAdmin(false))
+            .finally(() => setLoadingBilling(false));
 
         // Check for callback query params
         const params = new URLSearchParams(window.location.search);
@@ -163,6 +186,21 @@ export default function ConfiguracoesPage() {
                 </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-fit overflow-x-auto">
+                <button onClick={() => setActiveTab("profile")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${activeTab === "profile" ? "bg-[#00A868] text-white shadow-lg shadow-[#00A868]/20" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}>
+                    <User className="w-4 h-4" /> Meu Perfil
+                </button>
+                <button onClick={() => setActiveTab("integrations")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${activeTab === "integrations" ? "bg-[#00A868] text-white shadow-lg shadow-[#00A868]/20" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}>
+                    <Calendar className="w-4 h-4" /> Integrações
+                </button>
+                {isAdmin && (
+                    <button onClick={() => setActiveTab("billing")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${activeTab === "billing" ? "bg-[#00A868] text-white shadow-lg shadow-[#00A868]/20" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}>
+                        <CreditCard className="w-4 h-4" /> Assinatura
+                    </button>
+                )}
+            </div>
+
             {/* Message */}
             {msg && (
                 <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${
@@ -176,6 +214,7 @@ export default function ConfiguracoesPage() {
             )}
 
             {/* ═══ Google Calendar Integration ═══ */}
+            {activeTab === "integrations" && (
             <div className="card-elevated p-6">
                 <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-[#00A868]/10 flex items-center justify-center">
@@ -185,7 +224,7 @@ export default function ConfiguracoesPage() {
                 </h2>
 
                 <div className={`rounded-xl border p-4 ${gcalConnected ? 'border-[#00A868]/30 bg-[#00A868]/5' : 'border-border'}`}>
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
                             {/* Google Calendar Icon */}
                             <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 shadow-sm">
@@ -219,14 +258,14 @@ export default function ConfiguracoesPage() {
                             </div>
                         </div>
 
-                        <div className="shrink-0">
+                        <div className="w-full sm:w-auto shrink-0 mt-2 sm:mt-0 flex sm:block">
                             {gcalLoading ? (
                                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                             ) : gcalConnected ? (
                                 <button
                                     onClick={handleGcalDisconnect}
                                     disabled={gcalDisconnecting}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                                    className="w-full sm:w-auto flex justify-center items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50"
                                 >
                                     {gcalDisconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
                                     Desconectar
@@ -234,7 +273,7 @@ export default function ConfiguracoesPage() {
                             ) : (
                                 <a
                                     href="/api/google-calendar/auth"
-                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#00A868] text-white hover:bg-[#008f58] transition-colors shadow-lg shadow-[#00A868]/20"
+                                    className="w-full sm:w-auto flex justify-center items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#00A868] text-white hover:bg-[#008f58] transition-colors shadow-lg shadow-[#00A868]/20"
                                 >
                                     <ExternalLink className="w-3.5 h-3.5" /> Conectar com Google
                                 </a>
@@ -266,8 +305,11 @@ export default function ConfiguracoesPage() {
                     )}
                 </div>
             </div>
+            )}
 
             {/* Profile Section */}
+            {activeTab === "profile" && (
+            <div className="space-y-5">
             <div className="card-elevated p-6">
                 <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -358,6 +400,88 @@ export default function ConfiguracoesPage() {
                     </button>
                 </div>
             </div>
+            </div>
+            )}
+
+            {/* ═══ Billing Section ═══ */}
+            {activeTab === "billing" && isAdmin && (
+                <div className="space-y-5">
+                    <div className="card-elevated p-6">
+                        <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-[#00A868]/10 flex items-center justify-center">
+                                <CreditCard className="w-3.5 h-3.5 text-[#00A868]" />
+                            </div>
+                            Meu Plano
+                        </h2>
+                        {loadingBilling ? (
+                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground max-mx-auto" />
+                        ) : billingData?.subscriptions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Nenhuma assinatura ativa.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {billingData?.subscriptions.map((sub: any) => (
+                                    <div key={sub.id} className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl">
+                                        <div>
+                                            <p className="font-bold text-foreground">{sub.product.name}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">Renovação Mensal</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-[#00A868]">R$ {sub.product.monthlyPrice.toFixed(2).replace('.', ',')}</p>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full text-[10px] font-bold bg-[#00A868]/10 text-[#00A868]">
+                                                Ativo
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="card-elevated p-6">
+                        <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                <FileText className="w-3.5 h-3.5 text-blue-500" />
+                            </div>
+                            Histórico de Faturas
+                        </h2>
+                        {loadingBilling ? (
+                            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        ) : billingData?.billings.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {billingData?.billings.map((bill: any) => (
+                                    <div key={bill.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-muted/30 border border-border rounded-xl">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-bold text-foreground">{bill.month}</p>
+                                                {bill.status === "pago" ? (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#00A868]/10 text-[#00A868] uppercase">Pago</span>
+                                                ) : bill.status === "aguardando" ? (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-500 uppercase">Pendente</span>
+                                                ) : (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-500/10 text-red-500 uppercase">{bill.status}</span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-0.5">R$ {bill.totalAmount.toFixed(2).replace('.', ',')}</p>
+                                        </div>
+                                        {bill.status === "aguardando" && bill.paymentLink && (
+                                            <a href={bill.paymentLink} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 px-4 py-2 bg-foreground text-background font-semibold text-xs rounded-xl hover:bg-foreground/90 transition-colors shrink-0">
+                                                Pagar Fatura <ArrowRight className="w-3 h-3" />
+                                            </a>
+                                        )}
+                                        {bill.status === "pago" && bill.paymentLink && (
+                                            <a href={bill.paymentLink} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 px-4 py-2 border border-border text-foreground font-semibold text-xs rounded-xl hover:bg-muted transition-colors shrink-0">
+                                                Ver Recibo <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

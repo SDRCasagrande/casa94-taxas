@@ -109,41 +109,46 @@ export default function GoalsWidget() {
 
             {editing ? (
                 <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">Clientes</label>
                             <input type="number" value={targets.clients} onChange={e => setTargets(t => ({ ...t, clients: parseInt(e.target.value) || 0 }))}
-                                className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none" />
+                                className="w-full px-3 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-[#00A868]/50" />
                         </div>
                         <div>
                             <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">TPV (R$)</label>
                             <input type="number" value={targets.tpv} onChange={e => setTargets(t => ({ ...t, tpv: parseFloat(e.target.value) || 0 }))}
-                                className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none" />
+                                className="w-full px-3 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-[#00A868]/50" />
                         </div>
                         <div>
                             <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">Deals</label>
                             <input type="number" value={targets.deals} onChange={e => setTargets(t => ({ ...t, deals: parseInt(e.target.value) || 0 }))}
-                                className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none" />
+                                className="w-full px-3 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:border-[#00A868]/50" />
                         </div>
                     </div>
                     <button onClick={saveGoals} disabled={saving}
-                        className="w-full py-2 rounded-xl bg-[#00A868] text-white text-sm font-bold hover:bg-[#008f58] disabled:opacity-50 flex items-center justify-center gap-2">
+                        className="w-full py-3 rounded-xl bg-[#00A868] text-white text-sm font-bold hover:bg-[#008f58] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-all touch-target">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Salvar Metas
                     </button>
                 </div>
-            ) : (
+            ) : (<>
                 <div className="grid grid-cols-3 gap-4">
                     {items.map(item => {
                         const pct = item.target > 0 ? (item.actual / item.target) * 100 : 0;
-                        const statusColor = pct >= 80 ? "#00A868" : pct >= 50 ? "#f59e0b" : "#ef4444";
+                        const statusColor = pct >= 100 ? "#00A868" : pct >= 80 ? "#00A868" : pct >= 50 ? "#f59e0b" : "#ef4444";
+                        const isMet = pct >= 100;
 
                         return (
-                            <div key={item.label} className="flex flex-col items-center text-center">
+                            <div key={item.label} className={`flex flex-col items-center text-center ${isMet ? "animate-pulse-subtle" : ""}`}>
                                 <div className="relative mb-2">
                                     <CircularProgress pct={pct} color={statusColor} size={64} />
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-black" style={{ color: statusColor }}>{Math.round(pct)}%</span>
+                                        {isMet ? (
+                                            <span className="text-base">🎯</span>
+                                        ) : (
+                                            <span className="text-xs font-black" style={{ color: statusColor }}>{Math.round(pct)}%</span>
+                                        )}
                                     </div>
                                 </div>
                                 <p className="text-xs font-bold text-foreground">{item.format(item.actual)}</p>
@@ -153,7 +158,28 @@ export default function GoalsWidget() {
                         );
                     })}
                 </div>
-            )}
+                {/* Motivational bar */}
+                {(() => {
+                    const avgPct = items.reduce((a, item) => a + (item.target > 0 ? (item.actual / item.target) * 100 : 0), 0) / items.length;
+                    const allMet = items.every(item => item.target > 0 && item.actual >= item.target);
+                    const msg = allMet
+                        ? { emoji: "🏆", text: "Todas as metas batidas! Mês excepcional!", color: "bg-[#00A868]/10 text-[#00A868] border-[#00A868]/20" }
+                        : avgPct >= 80
+                        ? { emoji: "🔥", text: "Quase lá! Continue com esse ritmo!", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" }
+                        : avgPct >= 50
+                        ? { emoji: "💪", text: "Bom progresso. Ainda dá tempo de bater!", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" }
+                        : avgPct > 0
+                        ? { emoji: "🚀", text: "O mês está começando. Bora prospectar!", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" }
+                        : null;
+                    if (!msg) return null;
+                    return (
+                        <div className={`mt-4 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border ${msg.color}`}>
+                            <span className="text-base shrink-0">{msg.emoji}</span>
+                            <span>{msg.text}</span>
+                        </div>
+                    );
+                })()}
+            </>)}
         </div>
     );
 }

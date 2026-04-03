@@ -128,8 +128,8 @@ export default function AdminDashboard() {
                             <Activity className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-black tracking-tight">BitTask Admin</h1>
-                            <p className="text-[10px] text-gray-400 -mt-0.5">Super Admin Panel</p>
+                            <h1 className="text-base sm:text-lg font-black tracking-tight leading-none pt-1">BitTask Admin</h1>
+                            <p className="text-[10px] text-gray-400 mt-1 sm:mt-0">Super Admin Panel</p>
                         </div>
                     </div>
                     <button onClick={logout} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
@@ -198,13 +198,20 @@ export default function AdminDashboard() {
 
                         {filteredOrgs.map(org => (
                             <div key={org.id} className={`bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/8 transition-all ${!org.isActive ? "opacity-50" : ""}`}>
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <h3 className="font-bold text-white">{org.name}</h3>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${org.isActive ? "bg-[#00A868]/10 text-[#00A868]" : "bg-red-500/10 text-red-400"}`}>
-                                                {org.isActive ? "Ativo" : "Inativo"}
-                                            </span>
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                                    <div className="flex-1 min-w-0 w-full">
+                                        <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap">
+                                            <h3 className="font-bold text-white pr-2">{org.name}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${org.isActive ? "bg-[#00A868]/10 text-[#00A868]" : "bg-red-500/10 text-red-400"}`}>
+                                                    {org.isActive ? "Ativo" : "Inativo"}
+                                                </span>
+                                                <div className="sm:hidden">
+                                                    <button onClick={() => toggleOrg(org)} title={org.isActive ? "Desativar" : "Ativar"} className="p-1 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                                        {org.isActive ? <ToggleRight className="w-5 h-5 text-[#00A868]" /> : <ToggleLeft className="w-5 h-5" />}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                         <p className="text-xs text-gray-400 mt-0.5">{org.slug} · {org.city}/{org.state}</p>
                                         {org.email && <p className="text-xs text-gray-500 mt-0.5">{org.email}</p>}
@@ -224,7 +231,7 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-1 shrink-0">
+                                    <div className="hidden sm:flex items-center gap-1 shrink-0 mt-1">
                                         <button onClick={() => toggleOrg(org)} title={org.isActive ? "Desativar" : "Ativar"} className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
                                             {org.isActive ? <ToggleRight className="w-5 h-5 text-[#00A868]" /> : <ToggleLeft className="w-5 h-5" />}
                                         </button>
@@ -278,8 +285,8 @@ export default function AdminDashboard() {
                             <button onClick={() => setShowNewOrg(false)}><X className="w-5 h-5 text-gray-400" /></button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="col-span-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="sm:col-span-2">
                                 <label className="block text-xs font-medium text-gray-400 mb-1">Nome da empresa *</label>
                                 <input value={orgForm.name} onChange={e => setOrgForm({...orgForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')})} className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white" placeholder="Ex: Casa94 Stone Xinguará" />
                             </div>

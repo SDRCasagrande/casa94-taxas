@@ -12,6 +12,30 @@ export async function POST(request: Request) {
         const { question } = await request.json();
         if (!question?.trim()) return NextResponse.json({ error: "Pergunta é obrigatória" }, { status: 400 });
 
+        // ═══ GUARDRAIL: Only answer BitTask-related questions ═══
+        const q = question.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const bitTaskKeywords = [
+            "taxa", "cet", "mdr", "rav", "debito", "credito", "pix",
+            "cliente", "carteira", "stone", "ton", "adquirencia", "adquirente",
+            "negociacao", "renegoci", "proposta", "pipeline", "prospeccao",
+            "tarefa", "equipe", "team", "atribuir", "prazo",
+            "tpv", "volume", "comissao", "receita", "faturamento", "meta",
+            "safra", "credenciamento", "churn", "risco", "cancelado",
+            "comparativ", "simulacao", "simulador", "conversao",
+            "bittask", "lizze", "agenda", "calendar", "calendario",
+            "import", "csv", "relatorio", "pdf", "whatsapp",
+            "sugira", "ajude", "analise", "resuma", "recomend", "melhor", "pior",
+            "como", "qual", "quais", "quanto", "quando", "onde", "porque",
+        ];
+        const isRelated = bitTaskKeywords.some(kw => q.includes(kw)) || q.length <= 15;
+
+        if (!isRelated) {
+            return NextResponse.json({
+                answer: "🔒 Sou a **Lizze**, assistente exclusiva do **BitTask**. Só posso ajudar com:\n\n• 📊 Análise de taxas, CET e MDR\n• 💼 Gestão de carteira e clientes Stone/Ton\n• 🤝 Estratégias de negociação e renegociação\n• 📋 Tarefas e produtividade da equipe\n• 📈 Métricas, metas e pipeline\n• 💰 Comissões e TPV\n\nReformule sua pergunta sobre a carteira ou negociações! 😊",
+                question,
+            });
+        }
+
         // Build context from user's actual data
         const clientWhere: any = session.orgId ? { orgId: session.orgId } : { userId: session.userId };
         const negWhere: any = session.orgId ? { client: { orgId: session.orgId } } : { client: { userId: session.userId } };

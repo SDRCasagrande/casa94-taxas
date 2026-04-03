@@ -54,6 +54,59 @@ export async function PUT(request: Request, { params }: { params: Promise<{ negI
             },
         });
 
+        // ═══ AUTO-FOLLOWUP: Create task and calendar event when moving to 'aguardando_cliente' ═══
+        if (body.status === "aguardando_cliente" && neg.status !== "aguardando_cliente") {
+            try {
+                const { createCalendarEvent } = await import("@/lib/google-calendar");
+                const assigneeId = updated.assigneeId || session.userId;
+                    
+                let list = await prisma.taskList.findFirst({
+                    where: { userId: assigneeId }
+                });
+                if (!list) {
+                    list = await prisma.taskList.create({
+                        data: { name: "Prospecção & Follow-up", userId: assigneeId }
+                    });
+                }
+
+                const fDate = new Date();
+                fDate.setDate(fDate.getDate() + 2); // 2 days from now
+                const dateStr = fDate.toISOString().split("T")[0];
+                const timeStr = "10:00";
+                const title = `Follow-up: ${updated.client.name}`;
+                const desc = `Cliente: ${updated.client.name}\nContato: ${updated.client.phone || '-'}\nNegociação no estágio: Aguardando Cliente`;
+
+                const task = await prisma.task.create({
+                    data: {
+                        listId: list.id,
+                        title,
+                        description: desc,
+                        date: dateStr,
+                        time: timeStr,
+                        assigneeId: assigneeId,
+                        createdById: session.userId,
+                        priority: "high"
+                    }
+                });
+
+                const eventId = await createCalendarEvent(assigneeId, {
+                    title,
+                    description: desc,
+                    date: dateStr,
+                    time: timeStr
+                });
+
+                if (eventId) {
+                    await prisma.task.update({
+                        where: { id: task.id },
+                        data: { googleCalendarEventId: eventId, scheduled: true }
+                    });
+                }
+            } catch (err) {
+                console.error("[Auto-FollowUp] Error:", err);
+            }
+        }
+
         return NextResponse.json(updated);
     } catch (error) {
         console.error("PUT negotiations error:", error);
