@@ -37,14 +37,24 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next();
         }
 
+        // API routes — allow through (they handle their own auth)
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.next();
+        }
+
         // All admin routes require super_admin
         if (!isAuth) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
         if (!isSuperAdmin) {
-            // Not super admin — show forbidden
             return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
         }
+
+        // Force admin panel — block dashboard and other app routes
+        if (!pathname.startsWith('/admin')) {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        }
+
         return NextResponse.next();
     }
 
