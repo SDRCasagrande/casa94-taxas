@@ -204,8 +204,16 @@ export default function ClientesPage() {
                                         <span className="text-sm font-bold text-[#00A868]">{c.name.charAt(0)}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate">{c.name}</p>
-                                        <div className="flex gap-2 text-[10px] text-muted-foreground mt-0.5">
+                                        <p className="text-sm font-semibold truncate flex items-center justify-between">
+                                            {c.name}
+                                            {c.user && (
+                                                <span className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border" title={`Carteira de: ${c.user.name}`}>
+                                                    <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold text-white uppercase">{c.user.name.charAt(0)}</div>
+                                                    <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block max-w-[80px] truncate">{c.user.name.split(' ')[0]}</span>
+                                                </span>
+                                            )}
+                                        </p>
+                                        <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
                                             {c.stoneCode && <span>SC: {c.stoneCode}</span>}
                                             {c.segment && <span>{c.segment}</span>}
                                         </div>

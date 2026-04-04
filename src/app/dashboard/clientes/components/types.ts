@@ -9,6 +9,7 @@ export interface Client {
     brand: string; safra: string; category: string;
     status: string; credentialDate: string; cancelDate: string; segment: string;
     createdAt: string; negotiations: Negotiation[]; monthlyVolumes: MonthVolume[];
+    user?: { id: string; name: string; position: string };
 }
 
 /* ═══ HELPERS ═══ */
