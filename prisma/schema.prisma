@@ -28,6 +28,7 @@ model Organization {
   clients       Client[]
   taskLists     TaskList[]
   teamGroups    TeamGroup[]
+  proposalTemplates ProposalTemplate[]
   billings      Billing[]
   aiUsage       AiUsage[]
   subscriptions OrgSubscription[]
@@ -431,4 +432,39 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════════════
+// PROPOSAL TEMPLATES
+// ═══════════════════════════════════════════════
+
+model ProposalTemplate {
+  id                   String       @id @default(cuid())
+  orgId                String
+  label                String
+  desc                 String       @default("")
+  fidelidade           Boolean      @default(false)
+  adesao               Boolean      @default(false)
+  cancelDias           Int          @default(7)
+  
+  // Taxas e Preferências Defaults
+  defaultRates         Json?        
+  defaultEnabledBrands Json?        
+  defaultRavAuto       Float?
+  defaultRavPontual    Float?
+  defaultRavTipo       String?      // "automatico", "pontual"
+  defaultRavTiming     String?      // "md", "ds", "du"
+  defaultPixRate       Float?
+  defaultMachines      Int?
+  defaultRental        Float?
+  defaultMaqAdesao     Int?
+  defaultAdesaoValor   Float?
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("proposal_templates")
 }
