@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmModal";
 import { generateExecutiveReportPDF } from "@/lib/executive-report";
+import { calculateLeadScore } from "@/lib/lead-score";
 import {
     NewClientForm, ClientDetail, ImportCSVModal,
     Client, fmtMoney, currentMonth, calcCommission
@@ -187,7 +188,15 @@ export default function ClientesPage() {
                                     </div>
                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                         <StatusBadge s={c.status} />
-                                        <div className="flex items-center gap-1 mt-1">
+                                        {(() => {
+                                            const ls = calculateLeadScore(c);
+                                            return (
+                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${ls.color}`} title={`Score: ${ls.score}/100`}>
+                                                    {ls.emoji} {ls.score}
+                                                </span>
+                                            );
+                                        })()}
+                                        <div className="flex items-center gap-1 mt-0.5">
                                             <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold border ${c.brand === 'TON' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-green-600/10 text-green-600 border-green-600/20'}`}>{c.brand === 'TON' ? 'TON' : 'STONE'}</span>
                                             <span className="inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#00A868]/10 text-[#00A868] border border-blue-500/20">{c.safra}</span>
                                         </div>
