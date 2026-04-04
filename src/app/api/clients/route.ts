@@ -9,12 +9,16 @@ export async function GET() {
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         let where: any = { userId: session.userId };
-        // If user has orgId, show all org clients (team visibility)
-        if (session.orgId) where = { orgId: session.orgId };
+        
+        // Se for gestor ou admin, e a org existir, libera a visão panóptica de todos os clientes da franqueadora
+        if (session.orgId && session.userRole !== "agent") {
+            where = { orgId: session.orgId };
+        }
 
         const clients = await prisma.client.findMany({
             where,
             include: {
+                user: { select: { id: true, name: true, email: true, position: true } },
                 negotiations: { include: { assignee: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "desc" } },
                 monthlyVolumes: { orderBy: { month: "desc" }, take: 12 },
             },

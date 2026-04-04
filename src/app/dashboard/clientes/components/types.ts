@@ -10,6 +10,8 @@ export interface Client {
     status: string; credentialDate: string; cancelDate: string; segment: string;
     createdAt: string; negotiations: Negotiation[]; monthlyVolumes: MonthVolume[];
     user?: { id: string; name: string; position: string };
+    targetTpv?: number; 
+    fallbackRates?: any;
 }
 
 /* ═══ HELPERS ═══ */

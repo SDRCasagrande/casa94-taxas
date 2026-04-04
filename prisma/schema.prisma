@@ -272,6 +272,12 @@ model Client {
   cancelDate      String   @default("")
   segment         String   @default("")
   category        String   @default("")
+  
+  // CRM Parameters
+  targetTpv            Float    @default(0)
+  promotionalLimitDate String   @default("")
+  fallbackRates        Json?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

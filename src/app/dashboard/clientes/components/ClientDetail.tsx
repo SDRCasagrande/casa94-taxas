@@ -11,6 +11,7 @@ import {
     Client, MonthVolume, fmtDate, fmtMoney, fmtMonth, currentMonth,
     daysBetween, calcCommission, calcClientTotalCommission, shareWhatsApp
 } from "./types";
+import { useConfirm } from "@/components/ConfirmModal";
 
 function StatusBadge({ s }: { s: string }) {
     if (s === "cancelado") return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20"><XCircle className="w-2.5 h-2.5" />Cancelado</span>;
@@ -28,6 +29,7 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
     onReactivate: (id: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
 }) {
+    const confirmAction = useConfirm();
     const [tab, setTab] = useState<"resumo" | "tpv" | "negs">("resumo");
 
     // TPV form
@@ -293,9 +295,34 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                     const rp = parseFloat(rP) || lastNeg?.rates?.pix || 0;
                     const rr = parseFloat(rR) || lastNeg?.rates?.rav || 0;
                     try {
-                        await fetch(`/api/clients/${sel.id}/months`, { method: "POST", headers: { "Content-Type": "application/json" },
+                        const res = await fetch(`/api/clients/${sel.id}/months`, { method: "POST", headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ month: tpvMonth, tpvDebit: effectiveD, tpvCredit: effectiveC, tpvPix: effectiveP, rateDebit: rd, rateCredit: rc, ratePix: rp, rateRav: rr })
                         });
+                        const data = await res.json();
+                        
+                        if (data.tpvWarning) {
+                            const { confirmed } = await confirmAction({
+                                title: "⚠️ TPV Abaixo da Meta Promocional!",
+                                message: `O TPV deste mês (${fmtMoney(effectiveTotal)}) está abaixo da meta acordada de ${fmtMoney(sel.targetTpv || 0)}.\n\nAs taxas dele já foram penalizadas na Stone? Se sim, clique para atualizar as taxas agora e agendar uma Visita de Retenção imediata no seu painel.`,
+                                confirmText: "Aplicar Punição e Agendar Visita",
+                                variant: "danger"
+                            });
+                            
+                            if (confirmed && data.fallbackRates) {
+                                // 1. Update rates locally to fallbackRates
+                                await fetch(`/api/clients/${sel.id}/negotiations`, {
+                                    method: "POST", headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        dateNeg: new Date().toISOString().split("T")[0], 
+                                        status: "fechado", 
+                                        notes: "Taxas rebaixadas automaticamente por quebra de TPV Mensal.",
+                                        createTask: true,
+                                        rates: data.fallbackRates
+                                    })
+                                });
+                            }
+                        }
+
                         loadClients(); setTpvD(""); setTpvC(""); setTpvP(""); setTpvTotal(""); setRD(""); setRC(""); setRP(""); setRR("");
                     } catch { } finally { setTpvSaving(false); }
                 };

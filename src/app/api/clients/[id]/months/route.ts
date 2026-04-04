@@ -38,6 +38,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
         if (!month) return NextResponse.json({ error: "Month is required (YYYY-MM)" }, { status: 400 });
 
+        const totalTpv = (tpvDebit || 0) + (tpvCredit || 0) + (tpvPix || 0);
+
         const record = await prisma.clientMonth.upsert({
             where: { clientId_month: { clientId: id, month } },
             create: {
@@ -66,7 +68,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             },
         });
 
-        return NextResponse.json(record);
+        // @ts-ignore
+        const clientData: any = client;
+        const isBelowTarget = clientData.targetTpv && clientData.targetTpv > 0 && totalTpv < clientData.targetTpv;
+
+        return NextResponse.json({ ...record, tpvWarning: isBelowTarget, fallbackRates: clientData.fallbackRates });
     } catch (error) {
         console.error("POST months error:", error);
         return NextResponse.json({ error: "Internal error" }, { status: 500 });
