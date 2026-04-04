@@ -154,13 +154,35 @@ export async function GET() {
             });
         } catch { /* */ }
 
-        return NextResponse.json({
+        // Average time per stage (days) from stageHistory
+        const avgTimePerStage: Record<string, number> = {};
+        const stageDurations: Record<string, number[]> = {};
+        for (const neg of allNegs) {
+            const history = (neg.stageHistory as any[]) || [];
+            for (let i = 0; i < history.length - 1; i++) {
+                const stage = history[i].stage;
+                const from = new Date(history[i].date);
+                const to = new Date(history[i + 1].date);
+                const days = Math.max(0, (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+                if (!stageDurations[stage]) stageDurations[stage] = [];
+                stageDurations[stage].push(days);
+            }
+        }
+        for (const [stage, durations] of Object.entries(stageDurations)) {
+            avgTimePerStage[stage] = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length * 10) / 10;
+        }
+
+        const response = NextResponse.json({
             totalClients, activeClients, canceledClients,
             totalNegotiations, pendingNeg, acceptedNeg, rejectedNeg, conversionRate,
             pipeline, avgRates, recentClients, upcomingRenegotiations,
-            pendingTasks, monthlyCredentialings,
+            pendingTasks, monthlyCredentialings, avgTimePerStage,
             portfolio: { tpvTotal, revenueTotal, agentCommission, month: currentMonth },
         });
+
+        // Cache for 60 seconds to reduce DB load on repeated visits
+        response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+        return response;
     } catch (error) {
         console.error("GET /api/metrics error:", error);
         return NextResponse.json({ error: "Internal error" }, { status: 500 });

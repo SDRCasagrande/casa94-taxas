@@ -30,6 +30,7 @@ export default function ClientesPage() {
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState<"all" | "ativo" | "cancelado">("all");
     const [brandFilter, setBrandFilter] = useState<string>("all");
+    const [sortBy, setSortBy] = useState<"score" | "name" | "tpv" | "safra">("score");
     const [showImport, setShowImport] = useState(false);
     const [teamUsers, setTeamUsers] = useState<{id: string; name: string; email: string}[]>([]);
 
@@ -44,6 +45,22 @@ export default function ClientesPage() {
         if (brandFilter !== "all" && c.brand !== brandFilter) return false;
         if (search) { const q = search.toLowerCase(); return c.name.toLowerCase().includes(q) || c.cnpj.includes(q) || c.stoneCode.includes(q); }
         return true;
+    }).sort((a, b) => {
+        if (sortBy === "score") return calculateLeadScore(b).score - calculateLeadScore(a).score;
+        if (sortBy === "name") return a.name.localeCompare(b.name);
+        if (sortBy === "tpv") {
+            const cm = currentMonth();
+            const aVol = a.monthlyVolumes.find(v => v.month === cm);
+            const bVol = b.monthlyVolumes.find(v => v.month === cm);
+            const aTPV = aVol ? calcCommission(aVol).tpvTotal : 0;
+            const bTPV = bVol ? calcCommission(bVol).tpvTotal : 0;
+            return bTPV - aTPV;
+        }
+        if (sortBy === "safra") {
+            const order: Record<string, number> = { M0: 0, M1: 1, M2: 2, M3: 3, BASE: 4 };
+            return (order[a.safra] ?? 5) - (order[b.safra] ?? 5);
+        }
+        return 0;
     });
 
     const totalPortfolio = clients.filter(c => c.status === "ativo").length;
@@ -157,6 +174,13 @@ export default function ClientesPage() {
                         </button>
                     ))}
                 </div>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+                    className="px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs font-semibold text-muted-foreground focus:text-foreground transition-all cursor-pointer">
+                    <option value="score">⭐ Score</option>
+                    <option value="name">🔤 Nome</option>
+                    <option value="tpv">💰 TPV</option>
+                    <option value="safra">🌱 Safra</option>
+                </select>
             </div>
 
             {/* Client cards */}

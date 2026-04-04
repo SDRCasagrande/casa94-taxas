@@ -24,6 +24,7 @@ interface Metrics {
     totalNegotiations: number; pendingNeg: number; acceptedNeg: number; rejectedNeg: number; conversionRate: number;
     pipeline: Pipeline; pendingTasks: number; monthlyCredentialings: number; portfolio: Portfolio;
     avgRates: { debit: number; credit1x: number; credit2to6: number; credit7to12: number; pix: number; rav: number };
+    avgTimePerStage?: Record<string, number>;
     recentClients: { id: string; name: string; stoneCode: string; cnpj: string; status?: string; negotiations: { status: string; dateNeg: string; rates: Record<string, number> }[] }[];
     upcomingRenegotiations: RenegAlert[];
 }
@@ -271,6 +272,11 @@ export default function DashboardPage() {
                                 <div className={`w-2 h-2 rounded-full ${stage.dot} mx-auto mb-1.5`} />
                                 <p className="text-xl font-black">{count}</p>
                                 <p className="text-[9px] font-bold uppercase tracking-wider mt-0.5">{stage.label}</p>
+                                {metrics?.avgTimePerStage?.[key] != null && (
+                                    <p className="text-[8px] text-muted-foreground mt-1 flex items-center justify-center gap-0.5">
+                                        <Clock className="w-2.5 h-2.5" /> {metrics.avgTimePerStage[key]}d
+                                    </p>
+                                )}
                             </Link>
                         );
                     })}
