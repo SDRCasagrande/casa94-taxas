@@ -752,44 +752,48 @@ tr:nth-child(even){background:#fafafa}
                                         </div>
                                         <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-md font-bold text-foreground">Déb: {formatPercent(rates.debit)}</span>
                                     </div>
-                                    {/* CET Table */}
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full border-collapse text-[11px]">
-                                            <thead>
-                                                <tr className="bg-muted/40">
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-left w-12">Parc.</th>
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-right">MDR</th>
-                                                    <th className="text-[9px] text-muted-foreground font-bold px-3 py-2 text-right">CET</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {Array.from({ length: 18 }, (_, i) => {
-                                                    const parcela = i + 1;
-                                                    const mdr = getMDR(rates, parcela);
-                                                    const cet = calculateCET(mdr, rav, parcela);
-                                                    const isRangeStart = parcela === 1 || parcela === 2 || parcela === 7 || parcela === 13;
-                                                    const rangeLabel = parcela === 1 ? "À Vista" : parcela === 2 ? "2-6x" : parcela === 7 ? "7-12x" : parcela === 13 ? "13-18x" : null;
-                                                    return (
-                                                        <tr key={i} className={`transition-colors hover:bg-muted/30 ${
-                                                            isRangeStart ? "border-t-2 border-border/40" : "border-b border-border/5"
-                                                        }`}>
-                                                            <td className="px-3 py-1.5 font-bold text-foreground">
-                                                                <div className="flex items-center gap-1">
-                                                                    {parcela}x
-                                                                    {rangeLabel && <span className="text-[8px] text-muted-foreground/60 font-medium">{rangeLabel}</span>}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-1.5 text-foreground text-right font-medium tabular-nums">{formatPercent(mdr)}</td>
-                                                            <td className={`px-3 py-1.5 text-right font-black tabular-nums ${getCETColor(cet)}`}>
-                                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${getCETBg(cet)}`}>
-                                                                    {formatPercent(cet)}
-                                                                </span>
-                                                            </td>
+                                    {/* CET Table — 2 Column Layout */}
+                                    <div className="grid grid-cols-2 divide-x divide-border/30">
+                                        {[{ start: 1, end: 9 }, { start: 10, end: 18 }].map(({ start, end }) => (
+                                            <div key={start} className="overflow-x-auto">
+                                                <table className="w-full border-collapse text-[11px]">
+                                                    <thead>
+                                                        <tr className="bg-muted/40">
+                                                            <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-left w-10">Parc.</th>
+                                                            <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">MDR</th>
+                                                            <th className="text-[9px] text-muted-foreground font-bold px-2 py-1.5 text-right">CET</th>
                                                         </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {Array.from({ length: end - start + 1 }, (_, i) => {
+                                                            const parcela = start + i;
+                                                            const mdr = getMDR(rates, parcela);
+                                                            const cet = calculateCET(mdr, rav, parcela);
+                                                            const isRangeStart = parcela === 1 || parcela === 2 || parcela === 7 || parcela === 13 || parcela === 10;
+                                                            const rangeLabel = parcela === 1 ? "À Vista" : parcela === 2 ? "2-6x" : parcela === 7 ? "7-12x" : parcela === 13 ? "13-18x" : null;
+                                                            return (
+                                                                <tr key={parcela} className={`transition-colors hover:bg-muted/30 ${
+                                                                    isRangeStart ? "border-t-2 border-border/40" : "border-b border-border/5"
+                                                                }`}>
+                                                                    <td className="px-2 py-1 font-bold text-foreground">
+                                                                        <div className="flex items-center gap-0.5">
+                                                                            {parcela}x
+                                                                            {rangeLabel && <span className="text-[7px] text-muted-foreground/60 font-medium">{rangeLabel}</span>}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-2 py-1 text-foreground text-right font-medium tabular-nums">{formatPercent(mdr)}</td>
+                                                                    <td className={`px-2 py-1 text-right font-black tabular-nums ${getCETColor(cet)}`}>
+                                                                        <span className={`inline-flex items-center px-1 py-0.5 rounded-md text-[10px] ${getCETBg(cet)}`}>
+                                                                            {formatPercent(cet)}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             );
