@@ -270,98 +270,92 @@ export default function CETCalculatorPage() {
         const adesaoCustoPdf = maqAdesao * adesaoValor;
         const ravLabel = ravTipo === "pontual" ? "Pontual" : `Auto ${ravTiming === "md" ? "M.Dia" : ravTiming === "ds" ? "D.Seg" : "D.Úteis"}`;
         const brandCount = ACTIVE_BRANDS.length;
-        const gridCols = Math.min(brandCount, 2);
 
         let html = `<html><head><title>CET ${clientName || "Stone"}</title>
 <style>
-@page{size:landscape;margin:6mm}
+@page{size:landscape;margin:5mm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#333;padding:4px 8px}
-.header{text-align:center;border-bottom:2px solid #00a868;padding-bottom:4px;margin-bottom:6px}
-.header h1{font-size:18px;color:#00a868;margin:0 0 2px;font-weight:800;letter-spacing:0.5px}
-.badges{display:flex;justify-content:center;gap:4px;flex-wrap:wrap}
-.promo-badge,.fidelidade-badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:3px}
-.promo-badge{background:#fff3cd;color:#856404;border:1px solid #ffc107}
-.fidelidade-badge{background:#e3f2fd;color:#1565c0;border:1px solid #42a5f5}
-.summary-bar{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
-.sum-card{flex:1;min-width:140px;border:1px solid #ddd;border-radius:4px;padding:4px 8px}
-.sum-card h4{font-size:8px;font-weight:700;text-transform:uppercase;color:#00a868;margin-bottom:2px;letter-spacing:0.4px}
-.sum-row{display:flex;justify-content:space-between;font-size:10px;padding:1px 0}
-.sum-row .l{color:#888;font-size:9px}
-.sum-row .v{font-weight:700;color:#222;font-size:10px}
-.brand-grid{display:grid;grid-template-columns:repeat(${gridCols},1fr);gap:6px}
-.brand-card{border:1px solid #ddd;border-radius:5px;overflow:hidden;break-inside:avoid}
-.brand-hdr{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;background:linear-gradient(90deg,#e8f5e9,#f0fdf4);border-bottom:1px solid #c8e6c9}
-.brand-hdr h4{font-size:11px;font-weight:700;color:#2e7d32;margin:0}
-.brand-hdr .deb{font-size:9px;color:#666}
-.brand-hdr .deb b{color:#333}
-.split{display:grid;grid-template-columns:1fr 1fr}
-.split>div{border-right:1px solid #eee}
-.split>div:last-child{border-right:none}
-table{width:100%;border-collapse:collapse}
-th{padding:2px 4px;font-weight:600;color:#555;font-size:8px;border-bottom:1px solid #e0e0e0;background:#fafafa;text-transform:uppercase}
-td{padding:1.5px 4px;border-bottom:1px solid #f5f5f5;font-size:10px}
-tr:nth-child(even){background:#fafafa}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:#333;padding:4px 6px}
+.header{display:flex;align-items:center;justify-content:space-between;border-bottom:2.5px solid #00a868;padding-bottom:4px;margin-bottom:5px}
+.header h1{font-size:16px;color:#00a868;font-weight:800;letter-spacing:0.3px}
+.header .badges{display:flex;gap:4px;align-items:center}
+.badge{display:inline-block;font-size:8px;padding:2px 7px;border-radius:3px;font-weight:600}
+.badge-promo{background:#fff3cd;color:#856404;border:1px solid #ffc107}
+.badge-fid{background:#e3f2fd;color:#1565c0;border:1px solid #42a5f5}
+.info-strip{display:flex;gap:3px;margin-bottom:5px;font-size:9px;flex-wrap:wrap}
+.info-tag{padding:2px 6px;border-radius:3px;border:1px solid #e0e0e0;background:#fafafa;font-weight:500}
+.info-tag b{color:#00a868}
+.info-tag.amber b{color:#d97706}
+.info-tag.blue b{color:#1565c0}
+table{width:100%;border-collapse:collapse;border:1px solid #ccc;border-radius:4px;overflow:hidden}
+thead th{padding:4px 5px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;border-bottom:2px solid #ccc;border-right:1px solid #eee}
+.brand-head{background:linear-gradient(180deg,#e8f5e9,#f0fdf4);color:#2e7d32;text-align:center;font-size:9px;border-right:2px solid #c8e6c9}
+.brand-head:last-child{border-right:1px solid #ccc}
+.sub-head{background:#fafafa;color:#777;text-align:center;font-size:7.5px}
+.sub-head.deb{color:#059669;font-weight:700}
+tbody td{padding:2.5px 5px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f5f5f5;text-align:center;font-size:9.5px}
+tbody tr:nth-child(even){background:#fafafa}
+tbody tr:hover{background:#f0f7f0}
+.parc{text-align:left !important;font-weight:700;color:#555;width:30px;border-right:2px solid #eee}
+.mdr{color:#555;font-size:9px}
+.cet{font-weight:700}
 .green{color:#059669}.amber{color:#d97706}.red{color:#dc2626}
-.footer{font-size:8px;color:#aaa;margin-top:4px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
+.brand-sep{border-right:2px solid #e0e0e0 !important}
+.footer{font-size:7.5px;color:#aaa;margin-top:3px;border-top:1px solid #eee;padding-top:2px;display:flex;justify-content:space-between}
 </style></head><body>`;
 
-        // Header
+        // Header — single line
         html += `<div class="header"><h1>PROPOSTA STONE${clientName ? " \u2014 " + clientName.toUpperCase() : ""}</h1><div class="badges">`;
-        if (proposalType !== "custom") html += `<span class="promo-badge">${promoInfo?.label}</span>`;
-        if (fidelidade) html += `<span class="fidelidade-badge">FIDELIDADE 13 MESES</span>`;
+        if (proposalType !== "custom") html += `<span class="badge badge-promo">${promoInfo?.label}</span>`;
+        if (fidelidade) html += `<span class="badge badge-fid">FIDELIDADE 13M</span>`;
         html += `</div></div>`;
 
-        // Summary bar — horizontal compact cards
-        html += `<div class="summary-bar">`;
-
-        // Taxas resumo inline
-        html += `<div class="sum-card">`;
-        html += `<h4>Taxas por Bandeira</h4>`;
+        // Info strip — compact horizontal tags
+        html += `<div class="info-strip">`;
         ACTIVE_BRANDS.forEach(name => {
             const r = brandRates[name];
-            html += `<div class="sum-row"><span class="l">${name}</span><span class="v">D\u00e9b ${formatPercent(r.debit)} \u00b7 1x ${formatPercent(r.credit1x)} \u00b7 2-6x ${formatPercent(r.credit2to6)} \u00b7 7-12x ${formatPercent(r.credit7to12)}</span></div>`;
+            html += `<span class="info-tag"><b>${name}</b> D\u00e9b ${formatPercent(r.debit)} \u00b7 1x ${formatPercent(r.credit1x)} \u00b7 2-6x ${formatPercent(r.credit2to6)} \u00b7 7-12x ${formatPercent(r.credit7to12)}</span>`;
         });
+        html += `<span class="info-tag">RAV: <b>${ravLabel} ${formatPercent(ravAuto)}</b></span>`;
+        html += `<span class="info-tag">PIX: <b>${formatPercent(pixRate)}</b></span>`;
+        html += `<span class="info-tag">TPV: <b>R$ ${tpv.toLocaleString("pt-BR")}</b></span>`;
+        html += `<span class="info-tag blue">M\u00e1q: <b>${totalMaqPdf} (IPV ${Math.min(ipvPdf, machines)})</b></span>`;
+        if (paidPdf > 0) html += `<span class="info-tag amber">Aluguel: <b>R$ ${(paidPdf * rental).toFixed(2)}/m</b></span>`;
+        if (maqAdesao > 0) html += `<span class="info-tag blue">Ades\u00e3o: <b>${maqAdesao} (R$ ${adesaoCustoPdf.toFixed(2)})</b></span>`;
         html += `</div>`;
 
-        // RAV + PIX + Máquinas inline
-        html += `<div class="sum-card"><h4>RAV &amp; PIX &amp; M\u00e1quinas</h4>`;
-        html += `<div class="sum-row"><span class="l">RAV</span><span class="v">${ravLabel} ${formatPercent(ravAuto)}</span></div>`;
-        html += `<div class="sum-row"><span class="l">PIX</span><span class="v">${formatPercent(pixRate)}</span></div>`;
-        html += `<div class="sum-row"><span class="l">TPV</span><span class="v">R$ ${tpv.toLocaleString("pt-BR")}</span></div>`;
-        html += `<div class="sum-row"><span class="l">M\u00e1q.</span><span class="v">${totalMaqPdf} (IPV: ${Math.min(ipvPdf, machines)})</span></div>`;
-        if (maqAdesao > 0) html += `<div class="sum-row"><span class="l">Ades\u00e3o</span><span class="v" style="color:#1565c0">${maqAdesao} (R$ ${adesaoCustoPdf.toFixed(2)})</span></div>`;
-        if (paidPdf > 0) html += `<div class="sum-row"><span class="l">Aluguel</span><span class="v" style="color:#d97706">R$ ${(paidPdf * rental).toFixed(2)}/m\u00eas</span></div>`;
-        else html += `<div class="sum-row"><span class="l">Aluguel</span><span class="v" style="color:#059669">ISENTO</span></div>`;
-        html += `</div>`;
-        html += `</div>`; // end summary-bar
-
-        // CET tables — each brand has 2-column split (1-9x | 10-18x)
-        html += `<div class="brand-grid">`;
-        ACTIVE_BRANDS.forEach(name => {
+        // ── Unified table ──
+        html += `<table>`;
+        // Brand headers (colspan=2 each)
+        html += `<thead><tr><th rowspan="2" style="width:30px;background:#f5f5f5;border-right:2px solid #ddd">Parc.</th>`;
+        ACTIVE_BRANDS.forEach((name, i) => {
+            const isLast = i === brandCount - 1;
             const rates = brandRates[name];
-            html += `<div class="brand-card">`;
-            html += `<div class="brand-hdr"><h4>${name}</h4><div class="deb">D\u00e9b: <b>${formatPercent(rates.debit)}</b></div></div>`;
-            html += `<div class="split">`;
-            // Left col: 1-9x
-            html += `<div><table><tr><th style="text-align:left;width:28px">Parc</th><th style="text-align:right">MDR</th><th style="text-align:right">CET</th></tr>`;
-            for (let i = 1; i <= 9; i++) {
-                const mdr = getMDR(rates, i);
-                const cet = calculateCET(mdr, rav, i);
-                html += `<tr><td style="text-align:left;font-weight:600">${i}x</td><td style="text-align:right">${formatPercent(mdr)}</td><td style="text-align:right;font-weight:700" class="${cet < 5 ? 'green' : cet < 10 ? 'amber' : 'red'}">${formatPercent(cet)}</td></tr>`;
-            }
-            html += `</table></div>`;
-            // Right col: 10-18x
-            html += `<div><table><tr><th style="text-align:left;width:28px">Parc</th><th style="text-align:right">MDR</th><th style="text-align:right">CET</th></tr>`;
-            for (let i = 10; i <= 18; i++) {
-                const mdr = getMDR(rates, i);
-                const cet = calculateCET(mdr, rav, i);
-                html += `<tr><td style="text-align:left;font-weight:600">${i}x</td><td style="text-align:right">${formatPercent(mdr)}</td><td style="text-align:right;font-weight:700" class="${cet < 5 ? 'green' : cet < 10 ? 'amber' : 'red'}">${formatPercent(cet)}</td></tr>`;
-            }
-            html += `</table></div>`;
-            html += `</div></div>`; // end split + brand-card
+            html += `<th colspan="2" class="brand-head" ${isLast ? '' : 'style="border-right:2px solid #c8e6c9"'}>
+                ${name} <span style="font-size:7px;color:#888;font-weight:400">D\u00e9b ${formatPercent(rates.debit)}</span></th>`;
         });
-        html += `</div>`;
+        html += `</tr><tr>`;
+        // Sub-headers
+        ACTIVE_BRANDS.forEach((_, i) => {
+            const isLast = i === brandCount - 1;
+            html += `<th class="sub-head">MDR</th><th class="sub-head" ${isLast ? '' : 'style="border-right:2px solid #eee"'}>CET</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        // 18 rows
+        for (let inst = 1; inst <= 18; inst++) {
+            html += `<tr><td class="parc">${inst}x</td>`;
+            ACTIVE_BRANDS.forEach((name, i) => {
+                const rates = brandRates[name];
+                const mdr = getMDR(rates, inst);
+                const cet = calculateCET(mdr, rav, inst);
+                const cls = cet < 5 ? 'green' : cet < 10 ? 'amber' : 'red';
+                const isLast = i === brandCount - 1;
+                html += `<td class="mdr">${formatPercent(mdr)}</td><td class="cet ${cls}" ${isLast ? '' : 'style="border-right:2px solid #f0f0f0"'}>${formatPercent(cet)}</td>`;
+            });
+            html += `</tr>`;
+        }
+        html += `</tbody></table>`;
 
         html += `<div class="footer"><span>Gerado em ${new Date().toLocaleDateString("pt-BR")} \u2014 BitTask</span><span>${ravTipo === "pontual" ? "CET = MDR (sem antecipa\u00e7\u00e3o)" : `CET = MDR + RAV ${formatPercent(ravAuto)}`}</span></div>`;
         html += `</body></html>`;
@@ -822,6 +816,10 @@ tr:nth-child(even){background:#fafafa}
                                         <span className="text-sm">+</span> Adicionar Bandeira
                                     </button>
                                 )}
+                                {/* PIX — inline with brands */}
+                                <div className="mt-2 pt-2 border-t border-border/30">
+                                    <RI l="PIX %" v={pixRate} set={setPixRate} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -845,7 +843,7 @@ tr:nth-child(even){background:#fafafa}
                                     <select value={ravTipo} onChange={(e) => setRavTipo(e.target.value as "automatico" | "pontual")}
                                         className="w-full px-2 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs focus:ring-1 focus:ring-amber-500">
                                         <option value="automatico">Automático</option>
-                                        <option value="pontual">Pontual (CET=MDR)</option>
+                                        <option value="pontual">Pontual</option>
                                     </select>
                                 </div>
                                 {ravTipo === "automatico" && (
@@ -870,40 +868,39 @@ tr:nth-child(even){background:#fafafa}
                         </div>
                     </div>
 
-                    {/* PIX & Máquinas */}
+                    {/* Máquinas */}
                     <div className="card-elevated rounded-xl overflow-hidden">
                         <button onClick={() => toggleSection("pix")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-[11px] font-bold text-foreground uppercase">PIX & Máquinas</span>
+                                <span className="text-[11px] font-bold text-foreground uppercase">Máquinas</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-blue-400 font-medium">{machines} máq. | PIX {formatPercent(pixRate)}</span>
+                                <span className="text-[10px] text-blue-400 font-medium">{machines} máq.</span>
                                 <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform lg:hidden ${openSection === "pix" ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                             </div>
                         </button>
                         <div className={`px-3 pb-3 border-t border-border/30 space-y-2 ${openSection === "pix" ? "block" : "hidden lg:block"}`}>
                             <div className="grid grid-cols-2 gap-2 mt-2">
-                                <RI l="PIX" v={pixRate} set={setPixRate} />
-                                <div>
-                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Aluguel/máq (R$)</label>
-                                    <input type="number" min={0} step="0.01" value={rental || ''} onFocus={(e) => e.target.select()} onChange={(e) => setRental(parseFloat(e.target.value) || 0)}
-                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Máquinas</label>
                                     <input type="number" min={1} value={machines} onFocus={(e) => e.target.select()} onChange={(e) => setMachines(parseInt(e.target.value) || 1)}
                                         className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
                                 <div>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Aluguel/máq (R$)</label>
+                                    <input type="number" min={0} step="0.01" value={rental || ''} onFocus={(e) => e.target.select()} onChange={(e) => setRental(parseFloat(e.target.value) || 0)}
+                                        className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
                                     <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Qtd. Adesão</label>
                                     <input type="number" min={0} value={maqAdesao || ''} onFocus={(e) => e.target.select()} onChange={(e) => setMaqAdesao(parseInt(e.target.value) || 0)}
                                         className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Valor Adesão (R$/un)</label>
+                                    <label className="text-[10px] text-muted-foreground uppercase block mb-1 font-bold">Valor (R$/un)</label>
                                     <input type="number" min={0} step={0.01} value={adesaoValor || ''} onFocus={(e) => e.target.select()} onChange={(e) => setAdesaoValor(parseFloat(e.target.value) || 0)}
                                         className="w-full px-2 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-bold text-right focus:ring-1 focus:ring-blue-500" />
                                 </div>
