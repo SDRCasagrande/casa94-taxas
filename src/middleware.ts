@@ -11,9 +11,9 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get('auth-token')?.value;
     const { pathname } = request.nextUrl;
     
-    // Fix for Coolify/Proxies reading correct hostname
+    // Proxy-safe host resolution
     const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname;
-    const hostname = hostHeader.split(':')[0]; // remove port if present
+    const hostname = hostHeader.split(':')[0]; // isolate domain
 
     async function getPayload(t: string | undefined) {
         if (!t) return null;
@@ -29,16 +29,58 @@ export async function middleware(request: NextRequest) {
     const isAuth = !!payload;
     const isSuperAdmin = payload?.userRole === 'super_admin';
 
-    // Public paths
+    // ─── ADMIN SUBDOMAIN: admin.bittask.com.br ───
+    const isAdminHost = hostname === ADMIN_HOSTNAME || hostname === 'admin.localhost';
+
+    if (isAdminHost) {
+        // Public admin paths
+        if (pathname === '/login') {
+            if (isAuth && isSuperAdmin) {
+                return NextResponse.redirect(new URL('/admin', request.url));
+            }
+            return NextResponse.next();
+        }
+
+        // Shared APIs allowed
+        if (pathname.startsWith('/api/')) {
+            return NextResponse.next();
+        }
+
+        // Everything else requires auth and super_admin
+        if (!isAuth) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (!isSuperAdmin) {
+            return NextResponse.json({ error: 'Acesso negado: Requer privilégios de Admin.' }, { status: 403 });
+        }
+
+        // Force exactly the /admin ecosystem. Block /dashboard to avoid confusion.
+        if (!pathname.startsWith('/admin')) {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        }
+
+        return NextResponse.next();
+    }
+
+    // ─── APP SUBDOMAIN: app.bittask.com.br ───
+
+    // Deny access to /admin on the User Domain to keep it sandboxed
+    if (pathname.startsWith('/admin')) {
+        // We do not auto-redirect cross-domain to prevent confusion, just block it
+        return NextResponse.json({ error: 'Por favor acesse o painel Admin pelo subdomínio correto.' }, { status: 403 });
+    }
+
+    // Public App Paths
     const publicPaths = ['/login', '/convite', '/primeiro-acesso', '/api/auth/login', '/api/auth/forgot-password', '/api/seed', '/api/google-calendar/callback', '/api/billing/webhook'];
     if (publicPaths.some(p => pathname.startsWith(p))) {
         if (pathname === '/login' && isAuth) {
+            // Se logar num App e for SuperAdmin mas estiver no App, vai pro dashboard normalmente
             return NextResponse.redirect(new URL('/dashboard', request.url));
         }
         return NextResponse.next();
     }
 
-    // Root redirect
+    // Root -> redirect based on Auth
     if (pathname === '/') {
         if (isAuth) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -46,25 +88,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // Super Admin routes
-    if (pathname.startsWith('/admin')) {
-        if (!isAuth) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-        if (!isSuperAdmin) {
-             return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
-        }
-        return NextResponse.next();
-    }
-    
-    // API Admin routes
-    if (pathname.startsWith('/api/admin/')) {
-        if (!isAuth || !isSuperAdmin) {
-            return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
-        }
-    }
-
-    // Protected routes (Dashboard & normal API)
+    // Protected App Routes
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/')) {
         if (!isAuth) {
             if (pathname.startsWith('/api/')) {
