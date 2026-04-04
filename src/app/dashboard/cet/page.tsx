@@ -14,23 +14,46 @@ import { BrandIcon } from "@/components/BrandIcons";
 import { BrandSelectorModal } from "@/components/BrandSelectorModal";
 
 const STORAGE_KEY = "bitkaiser_cet_calc";
+const TEMPLATES_KEY = "bitkaiser_proposal_templates";
 
-/* ── Proposal Types ── */
-interface ProposalConfig {
+/* ── Proposal Templates (dynamic) ── */
+interface ProposalTemplate {
     id: string;
     label: string;
     desc: string;
     fidelidade: boolean;
     adesao: boolean;
     cancelDias: number;
+    // Defaults when template is selected
+    defaultRates?: Record<string, BrandRates>;
+    defaultEnabledBrands?: string[];
+    defaultRavAuto?: number;
+    defaultRavPontual?: number;
+    defaultRavTipo?: "automatico" | "pontual";
+    defaultRavTiming?: "md" | "ds" | "du";
+    defaultPixRate?: number;
+    defaultMachines?: number;
+    defaultRental?: number;
+    defaultMaqAdesao?: number;
+    defaultAdesaoValor?: number;
 }
 
-const PROPOSAL_TYPES: ProposalConfig[] = [
-    { id: "custom", label: "Personalizada", desc: "Taxas e condições customizadas", fidelidade: false, adesao: false, cancelDias: 0 },
-    { id: "essencial_pro", label: "Stone Essencial Pro", desc: "Sem fidelidade • Máquinas por adesão • D0/D1/DU • 1 mês isento da taxa adicional 0,50% • Cancelamento até 7 dias", fidelidade: false, adesao: true, cancelDias: 7 },
-    { id: "promo_stone_2m", label: "PROMO STONE — 2 meses", desc: "2 meses grátis recebendo D0 • Fidelidade 13 meses (1º isento + 12) • Taxas promocionais por 2 meses, depois ajusta • Após promo cobra 0,50% p/ manter D0 ou D1 • Cancelamento até 7 dias", fidelidade: true, adesao: false, cancelDias: 7 },
-    { id: "stone_flex", label: "Stone Flex", desc: "Taxas variáveis conforme volume • Plano com fidelidade", fidelidade: true, adesao: false, cancelDias: 7 },
-];
+const BASE_TEMPLATE: ProposalTemplate = { id: "custom", label: "Personalizada", desc: "Taxas e condições customizadas", fidelidade: false, adesao: false, cancelDias: 0 };
+
+function loadTemplates(): ProposalTemplate[] {
+    try {
+        const saved = localStorage.getItem(TEMPLATES_KEY);
+        if (saved) return [BASE_TEMPLATE, ...JSON.parse(saved)];
+    } catch { /* */ }
+    return [BASE_TEMPLATE];
+}
+
+function saveTemplates(templates: ProposalTemplate[]) {
+    try {
+        // Save without the base template
+        localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates.filter(t => t.id !== "custom")));
+    } catch { /* */ }
+}
 
 
 function getMDR(rates: BrandRates, inst: number) {
@@ -44,6 +67,9 @@ export default function CETCalculatorPage() {
     // State
     const [clientName, setClientName] = useState("");
     const [proposalType, setProposalType] = useState("custom");
+    const [templates, setTemplates] = useState<ProposalTemplate[]>([BASE_TEMPLATE]);
+    const [showTemplateManager, setShowTemplateManager] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState<ProposalTemplate | null>(null);
     const [brandRates, setBrandRates] = useState<Record<string, BrandRates>>(() => ({ ...BRAND_PRESETS }));
     const [enabledBrands, setEnabledBrands] = useState<Record<string, boolean>>(() => {
         const DEFAULT_ON = ["VISA/MASTER", "ELO"];
@@ -69,6 +95,9 @@ export default function CETCalculatorPage() {
     const [newBrandInput, setNewBrandInput] = useState("");
     const [showNewBrand, setShowNewBrand] = useState(false);
     const [showBrandModal, setShowBrandModal] = useState(false);
+
+    // Load templates
+    useEffect(() => { setTemplates(loadTemplates()); }, []);
 
     // Client autocomplete
     interface ClientSuggestion { id: string; name: string; cnpj: string; negotiations: { rates: any }[] }
@@ -109,18 +138,64 @@ export default function CETCalculatorPage() {
     const ACTIVE_BRANDS = ALL_BRANDS.filter(b => enabledBrands[b]);
     const sr = brandRates[activeBrand] || BRAND_PRESETS["VISA/MASTER"];
     const rav = ravTipo === "pontual" ? 0 : ravAuto;
-    const promoInfo = PROPOSAL_TYPES.find(p => p.id === proposalType);
+    const promoInfo = templates.find((p: ProposalTemplate) => p.id === proposalType);
 
     // Auto-configure when switching proposal type
     function handleProposalChange(id: string) {
         setProposalType(id);
-        const config = PROPOSAL_TYPES.find(p => p.id === id);
+        const config = templates.find((p: ProposalTemplate) => p.id === id);
         if (config && id !== "custom") {
             setFidelidade(config.fidelidade);
-            if (id === "promo_stone_2m") {
-                setRavTipo("automatico"); setRavTiming("md");
+            // Apply template defaults
+            if (config.defaultRates) {
+                setBrandRates({ ...BRAND_PRESETS, ...config.defaultRates });
+                if (config.defaultEnabledBrands) {
+                    const eb: Record<string, boolean> = {};
+                    Object.keys(BRAND_PRESETS).forEach(b => eb[b] = false);
+                    config.defaultEnabledBrands.forEach(b => eb[b] = true);
+                    setEnabledBrands(eb);
+                }
             }
+            if (config.defaultRavAuto !== undefined) setRavAuto(config.defaultRavAuto);
+            if (config.defaultRavPontual !== undefined) setRavPontual(config.defaultRavPontual);
+            if (config.defaultRavTipo) setRavTipo(config.defaultRavTipo);
+            if (config.defaultRavTiming) setRavTiming(config.defaultRavTiming);
+            if (config.defaultPixRate !== undefined) setPixRate(config.defaultPixRate);
+            if (config.defaultMachines !== undefined) setMachines(config.defaultMachines);
+            if (config.defaultRental !== undefined) setRental(config.defaultRental);
+            if (config.defaultMaqAdesao !== undefined) setMaqAdesao(config.defaultMaqAdesao);
+            if (config.defaultAdesaoValor !== undefined) setAdesaoValor(config.defaultAdesaoValor);
         }
+    }
+
+    // Template CRUD
+    function handleSaveTemplate(t: ProposalTemplate) {
+        const updated = t.id && templates.find(x => x.id === t.id)
+            ? templates.map(x => x.id === t.id ? t : x)
+            : [...templates, { ...t, id: `tpl_${Date.now()}` }];
+        setTemplates(updated);
+        saveTemplates(updated);
+        setEditingTemplate(null);
+    }
+    function handleDeleteTemplate(id: string) {
+        const updated = templates.filter(x => x.id !== id);
+        setTemplates(updated);
+        saveTemplates(updated);
+        if (proposalType === id) setProposalType("custom");
+    }
+    function handleSaveCurrentAsTemplate() {
+        setEditingTemplate({
+            id: "", label: "", desc: "",
+            fidelidade, adesao: maqAdesao > 0, cancelDias: 7,
+            defaultRates: { ...brandRates },
+            defaultEnabledBrands: ACTIVE_BRANDS,
+            defaultRavAuto: ravAuto, defaultRavPontual: ravPontual,
+            defaultRavTipo: ravTipo, defaultRavTiming: ravTiming,
+            defaultPixRate: pixRate,
+            defaultMachines: machines, defaultRental: rental,
+            defaultMaqAdesao: maqAdesao, defaultAdesaoValor: adesaoValor,
+        });
+        setShowTemplateManager(true);
     }
 
     // Load
@@ -410,7 +485,7 @@ tr:nth-child(even){background:#fafafa}
                         <button onClick={() => toggleSection("proposta")} className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 transition-colors lg:pointer-events-none">
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-purple-500" />
-                                <span className="text-[11px] font-bold text-foreground uppercase">Tipo de Proposta</span>
+                                <span className="text-[11px] font-bold text-foreground uppercase">Perfil de Proposta</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] text-purple-400 font-medium truncate max-w-[120px]">{promoInfo?.label}</span>
@@ -420,11 +495,23 @@ tr:nth-child(even){background:#fafafa}
                         <div className={`px-3 pb-3 space-y-2 border-t border-border/30 ${openSection === "proposta" ? "block" : "hidden lg:block"}`}>
                             <select value={proposalType} onChange={(e) => handleProposalChange(e.target.value)}
                                 className="w-full mt-2 px-2.5 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium focus:ring-1 focus:ring-purple-500">
-                                {PROPOSAL_TYPES.map(p => (<option key={p.id} value={p.id}>{p.label}</option>))}
+                                {templates.map((p: ProposalTemplate) => (<option key={p.id} value={p.id}>{p.label}</option>))}
                             </select>
                             {promoInfo && proposalType !== "custom" && (
                                 <p className="text-[11px] text-purple-400 bg-purple-500/10 rounded-lg px-2.5 py-1.5">{promoInfo.desc}</p>
                             )}
+                            <div className="flex gap-1.5 pt-1">
+                                <button type="button" onClick={handleSaveCurrentAsTemplate}
+                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition-colors border border-dashed border-purple-500/20">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                    Salvar como Perfil
+                                </button>
+                                <button type="button" onClick={() => setShowTemplateManager(true)}
+                                    className="flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold rounded-lg bg-secondary text-muted-foreground hover:bg-muted transition-colors">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    Gerenciar
+                                </button>
+                            </div>
                             <label className="flex items-center gap-2.5 cursor-pointer pt-1">
                                 <div className={`relative w-9 h-5 rounded-full transition-colors ${fidelidade ? 'bg-blue-500' : 'bg-secondary border border-border'}`}
                                     onClick={() => setFidelidade(!fidelidade)}>
@@ -435,6 +522,137 @@ tr:nth-child(even){background:#fafafa}
                             {fidelidade && <p className="text-[11px] text-blue-400 bg-blue-500/10 rounded-lg px-2.5 py-1.5">1º mês isento + 12 Meses = 13 Meses total</p>}
                         </div>
                     </div>
+
+                    {/* Template Manager Modal */}
+                    {showTemplateManager && (
+                        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setShowTemplateManager(false); setEditingTemplate(null); }}>
+                            <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                                <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-foreground">{editingTemplate ? (editingTemplate.id ? "Editar Perfil" : "Novo Perfil de Proposta") : "Perfis de Proposta"}</h3>
+                                    <button onClick={() => { setShowTemplateManager(false); setEditingTemplate(null); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:bg-muted">✕</button>
+                                </div>
+
+                                {editingTemplate ? (
+                                    <div className="p-4 space-y-3">
+                                        <div>
+                                            <label className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">Nome do Perfil *</label>
+                                            <input value={editingTemplate.label} onChange={e => setEditingTemplate({ ...editingTemplate, label: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-sm" placeholder="Ex: Stone Essencial Pro" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">Descrição</label>
+                                            <textarea value={editingTemplate.desc} onChange={e => setEditingTemplate({ ...editingTemplate, desc: e.target.value })}
+                                                className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-foreground text-xs resize-none" rows={2} placeholder="Condições e regras do perfil..." />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <label className="flex items-center gap-2 text-xs">
+                                                <input type="checkbox" checked={editingTemplate.fidelidade} onChange={e => setEditingTemplate({ ...editingTemplate, fidelidade: e.target.checked })} className="rounded" />
+                                                Fidelidade
+                                            </label>
+                                            <label className="flex items-center gap-2 text-xs">
+                                                <input type="checkbox" checked={editingTemplate.adesao} onChange={e => setEditingTemplate({ ...editingTemplate, adesao: e.target.checked })} className="rounded" />
+                                                Adesão
+                                            </label>
+                                        </div>
+                                        <div className="border-t border-border/30 pt-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Taxas Padrão (VISA/MASTER)</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[{l:"Déb",k:"debit"},{l:"1x",k:"credit1x"},{l:"2-6x",k:"credit2to6"},{l:"7-12x",k:"credit7to12"},{l:"13-18x",k:"credit13to18"}].map(({l,k}) => (
+                                                    <div key={k}>
+                                                        <label className="text-[9px] text-muted-foreground block mb-0.5">{l}</label>
+                                                        <input type="number" step="0.01" value={editingTemplate.defaultRates?.["VISA/MASTER"]?.[k as keyof BrandRates] ?? 0}
+                                                            onChange={e => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                const curr = editingTemplate.defaultRates?.["VISA/MASTER"] || { debit: 0, credit1x: 0, credit2to6: 0, credit7to12: 0, credit13to18: 0 };
+                                                                setEditingTemplate({ ...editingTemplate, defaultRates: { ...editingTemplate.defaultRates, "VISA/MASTER": { ...curr, [k]: val } } });
+                                                            }}
+                                                            className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="border-t border-border/30 pt-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-2">Configurações Padrão</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">RAV Auto %</label>
+                                                    <input type="number" step="0.01" value={editingTemplate.defaultRavAuto ?? 1.30}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultRavAuto: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">PIX %</label>
+                                                    <input type="number" step="0.01" value={editingTemplate.defaultPixRate ?? 0}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultPixRate: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">Máquinas</label>
+                                                    <input type="number" step="1" value={editingTemplate.defaultMachines ?? 1}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultMachines: parseInt(e.target.value) || 1 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">Aluguel R$</label>
+                                                    <input type="number" step="0.01" value={editingTemplate.defaultRental ?? 99.90}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultRental: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">Adesão Qtd</label>
+                                                    <input type="number" step="1" value={editingTemplate.defaultMaqAdesao ?? 0}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultMaqAdesao: parseInt(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-muted-foreground block mb-0.5">Adesão R$/un</label>
+                                                    <input type="number" step="0.01" value={editingTemplate.defaultAdesaoValor ?? 478.80}
+                                                        onChange={e => setEditingTemplate({ ...editingTemplate, defaultAdesaoValor: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-right" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                            <button onClick={() => setEditingTemplate(null)} className="flex-1 px-3 py-2 rounded-lg bg-secondary text-muted-foreground text-xs font-bold hover:bg-muted">Cancelar</button>
+                                            <button onClick={() => { if (editingTemplate.label.trim()) handleSaveTemplate(editingTemplate); }}
+                                                disabled={!editingTemplate.label.trim()}
+                                                className="flex-1 px-3 py-2 rounded-lg bg-purple-500 text-white text-xs font-bold hover:bg-purple-600 disabled:opacity-50 transition-colors">Salvar Perfil</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 space-y-2">
+                                        {templates.filter(t => t.id !== "custom").length === 0 ? (
+                                            <div className="text-center py-6">
+                                                <p className="text-sm text-muted-foreground">Nenhum perfil criado</p>
+                                                <p className="text-xs text-muted-foreground/60 mt-1">Clique em &quot;Novo Perfil&quot; para criar um padrão de proposta</p>
+                                            </div>
+                                        ) : (
+                                            templates.filter(t => t.id !== "custom").map(t => (
+                                                <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors">
+                                                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center text-xs font-bold shrink-0">{t.label.charAt(0)}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-foreground truncate">{t.label}</p>
+                                                        <p className="text-[10px] text-muted-foreground truncate">{t.desc || "Sem descrição"}</p>
+                                                    </div>
+                                                    <button onClick={() => setEditingTemplate(t)} className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500/20 transition-colors shrink-0" title="Editar">
+                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDeleteTemplate(t.id)} className="w-7 h-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-colors shrink-0" title="Excluir">
+                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                        <button onClick={() => setEditingTemplate({ id: "", label: "", desc: "", fidelidade: false, adesao: false, cancelDias: 7 })}
+                                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition-colors border border-dashed border-purple-500/20">
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                            Novo Perfil
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* TPV */}
                     <div className="card-elevated rounded-xl overflow-hidden">
