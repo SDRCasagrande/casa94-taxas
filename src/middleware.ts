@@ -9,7 +9,11 @@ const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || 'admin.bittask.com.br';
 
 export async function middleware(request: NextRequest) {
     const token = request.cookies.get('auth-token')?.value;
-    const { pathname, hostname } = request.nextUrl;
+    const { pathname } = request.nextUrl;
+    
+    // Fix for Coolify/Proxies reading correct hostname
+    const hostHeader = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname;
+    const hostname = hostHeader.split(':')[0]; // remove port if present
 
     async function getPayload(t: string | undefined) {
         if (!t) return null;
@@ -25,50 +29,8 @@ export async function middleware(request: NextRequest) {
     const isAuth = !!payload;
     const isSuperAdmin = payload?.userRole === 'super_admin';
 
-    // ─── ADMIN SUBDOMAIN (admin.bittask.com.br) ───
-    const isAdminHost = hostname === ADMIN_HOSTNAME || hostname === 'admin.localhost';
-
-    if (isAdminHost) {
-        // Public admin paths
-        if (pathname === '/login') {
-            if (isAuth && isSuperAdmin) {
-                return NextResponse.redirect(new URL('/admin', request.url));
-            }
-            return NextResponse.next();
-        }
-
-        // API routes — allow through (they handle their own auth)
-        if (pathname.startsWith('/api/')) {
-            return NextResponse.next();
-        }
-
-        // All admin routes require super_admin
-        if (!isAuth) {
-            return NextResponse.redirect(new URL('/login', request.url));
-        }
-        if (!isSuperAdmin) {
-            return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
-        }
-
-        // Force admin panel — block dashboard and other app routes
-        if (!pathname.startsWith('/admin')) {
-            return NextResponse.redirect(new URL('/admin', request.url));
-        }
-
-        return NextResponse.next();
-    }
-
-    // ─── APP SUBDOMAIN (app.bittask.com.br) ───
-
-    // Block /admin on main domain — must use admin.bittask.com.br
-    if (pathname.startsWith('/admin')) {
-        const adminUrl = new URL(pathname, `https://${ADMIN_HOSTNAME}`);
-        adminUrl.search = request.nextUrl.search;
-        return NextResponse.redirect(adminUrl);
-    }
-
     // Public paths
-    const publicPaths = ['/login', '/convite', '/primeiro-acesso', '/api/auth/login', '/api/auth/forgot-password', '/api/seed', '/api/google-calendar/callback', '/api/billing/webhook', '/api/admin/promote'];
+    const publicPaths = ['/login', '/convite', '/primeiro-acesso', '/api/auth/login', '/api/auth/forgot-password', '/api/seed', '/api/google-calendar/callback', '/api/billing/webhook'];
     if (publicPaths.some(p => pathname.startsWith(p))) {
         if (pathname === '/login' && isAuth) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -84,7 +46,25 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // Protected routes
+    // Super Admin routes
+    if (pathname.startsWith('/admin')) {
+        if (!isAuth) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (!isSuperAdmin) {
+             return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
+        }
+        return NextResponse.next();
+    }
+    
+    // API Admin routes
+    if (pathname.startsWith('/api/admin/')) {
+        if (!isAuth || !isSuperAdmin) {
+            return NextResponse.json({ error: 'Forbidden: Super Admin only' }, { status: 403 });
+        }
+    }
+
+    // Protected routes (Dashboard & normal API)
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/')) {
         if (!isAuth) {
             if (pathname.startsWith('/api/')) {
