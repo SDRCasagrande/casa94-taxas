@@ -315,6 +315,33 @@ export default function TarefasPage() {
                         })}
                     </>)}
 
+                    {/* ═══ WORKLOAD PANEL ═══ */}
+                    {teamMembers.length > 0 && (
+                        <div className="mt-3 mb-1 mx-1 p-2.5 rounded-xl bg-secondary/40 border border-border/50">
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <Users className="w-3 h-3 text-muted-foreground" />
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Carga da Equipe</span>
+                            </div>
+                            {[{ id: currentUserId, name: "Eu" }, ...teamMembers].map(u => {
+                                const uTaskCount = u.id === currentUserId
+                                    ? allTasks.filter(t => !t.completed && (t.assigneeId === currentUserId || (!t.assigneeId && t.createdById === currentUserId))).length
+                                    : allTasks.filter(t => !t.completed && t.assigneeId === u.id).length;
+                                const maxLoad = 10;
+                                const pct = Math.min((uTaskCount / maxLoad) * 100, 100);
+                                const barColor = uTaskCount >= 8 ? "bg-red-500" : uTaskCount >= 5 ? "bg-amber-500" : "bg-[#00A868]";
+                                return (
+                                    <div key={u.id} className="flex items-center gap-2 mb-1.5 last:mb-0">
+                                        <span className="text-[10px] font-medium text-muted-foreground w-12 truncate">{u.name.split(" ")[0]}</span>
+                                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${Math.max(pct, 4)}%` }} />
+                                        </div>
+                                        <span className={`text-[9px] font-bold w-4 text-right ${uTaskCount >= 8 ? "text-red-500" : uTaskCount >= 5 ? "text-amber-500" : "text-muted-foreground"}`}>{uTaskCount}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     <div className="mt-4 mb-1"><span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 px-3">Listas</span></div>
                     {lists.map(l => (
                         <button key={l.id} onClick={() => setSidebarFilter(sidebarFilter === `list_${l.id}` ? "all" : `list_${l.id}`)}
@@ -381,8 +408,10 @@ export default function TarefasPage() {
                 {view === "kanban" && (
                     <KanbanBoard
                         tasks={allTasks}
-                        onToggle={(id) => { const t = allTasks.find(x => x.id === id); if (t) updateTask(id, { completed: !t.completed }); }}
-                        onUpdate={(id, data) => updateTask(id, data)}
+                        users={users}
+                        currentUserId={currentUserId}
+                        onToggle={(id: string) => { const t = allTasks.find(x => x.id === id); if (t) updateTask(id, { completed: !t.completed }); }}
+                        onUpdate={(id: string, data: Record<string, any>) => updateTask(id, data)}
                         onSelect={setDetailTask}
                     />
                 )}
