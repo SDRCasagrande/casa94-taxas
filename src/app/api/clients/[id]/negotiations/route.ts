@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const body = await request.json();
-        const status = body.status || (body.dateAccept ? "aceita" : "prospeccao");
+        const status = body.status || (body.dateAccept ? "aplicada" : "analise");
 
         const negotiation = await prisma.negotiation.create({
             data: {
@@ -41,6 +41,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 prospeccao: "Prospecção", proposta_enviada: "Proposta Enviada",
                 aguardando_cliente: "Aguardando Cliente", aprovado: "Aprovado",
                 recusado: "Recusado", fechado: "Fechado",
+                analise: "Em Análise", proposta_retencao: "Proposta de Retenção",
+                aplicada: "Aplicada", recusada: "Recusada"
             };
             const stLabel = statusLabels[status] || status;
 

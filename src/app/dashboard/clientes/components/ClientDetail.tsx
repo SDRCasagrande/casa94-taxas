@@ -43,7 +43,7 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
     // Neg form
     const [showNewNeg, setShowNewNeg] = useState(false);
     const [negDate, setNegDate] = useState(new Date().toISOString().split("T")[0]);
-    const [negStatus, setNegStatus] = useState("prospeccao");
+    const [negStatus, setNegStatus] = useState("analise");
     const [negRates, setNegRates] = useState<NegRatesForm>({ debit: "", credit1x: "", credit2to6: "", credit7to12: "", pix: "", rav: "" });
     const [negNotes, setNegNotes] = useState("");
     const [negAlertDate, setNegAlertDate] = useState("");
@@ -476,9 +476,8 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                                     <input type="date" value={negDate} onChange={e => setNegDate(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none [color-scheme:dark]" /></div>
                                 <div><label className="text-xs font-medium text-muted-foreground block mb-1">Status</label>
                                     <select value={negStatus} onChange={e => setNegStatus(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none">
-                                        <option value="prospeccao">Prospecção</option><option value="proposta_enviada">Proposta Enviada</option>
-                                        <option value="aguardando_cliente">Aguardando Cliente</option><option value="aprovado">Aprovado</option>
-                                        <option value="recusado">Recusado</option><option value="fechado">Fechado</option>
+                                        <option value="analise">Em Análise / Solicitado</option><option value="proposta_retencao">Proposta de Retenção</option>
+                                        <option value="aplicada">Aprovada / Aplicada</option><option value="recusada">Recusada</option>
                                     </select></div>
                             </div>
                             <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-2">
@@ -571,8 +570,8 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                             <p className="text-sm">Nenhuma negociação registrada.</p>
                         </div>
                     ) : sel.negotiations.map((neg, i) => {
-                        const stLabel: Record<string, string> = { prospeccao: "Prospecção", proposta_enviada: "Proposta Enviada", aguardando_cliente: "Aguardando Cliente", aprovado: "Aprovado", recusado: "Recusado", fechado: "Fechado", pendente: "Pendente", aceita: "Aprovado", recusada: "Recusado" };
-                        const stColor: Record<string, string> = { prospeccao: "bg-slate-500/10 text-slate-500", proposta_enviada: "bg-[#00A868]/10 text-[#00A868]", aguardando_cliente: "bg-amber-500/10 text-amber-500", aprovado: "bg-[#00A868]/10 text-[#00A868]", recusado: "bg-red-500/10 text-red-500", fechado: "bg-purple-500/10 text-purple-500", pendente: "bg-amber-500/10 text-amber-500", aceita: "bg-[#00A868]/10 text-[#00A868]", recusada: "bg-red-500/10 text-red-500" };
+                        const stLabel: Record<string, string> = { prospeccao: "Prospecção", proposta_enviada: "Proposta Enviada", aguardando_cliente: "Aguardando Cliente", aprovado: "Aprovado", recusado: "Recusado", fechado: "Fechado", pendente: "Pendente", aceita: "Aprovado", recusada: "Recusada", analise: "Em Análise", proposta_retencao: "Proposta de Retenção", aplicada: "Aplicada" };
+                        const stColor: Record<string, string> = { prospeccao: "bg-slate-500/10 text-slate-500", proposta_enviada: "bg-[#00A868]/10 text-[#00A868]", aguardando_cliente: "bg-amber-500/10 text-amber-500", aprovado: "bg-[#00A868]/10 text-[#00A868]", recusado: "bg-red-500/10 text-red-500", fechado: "bg-purple-500/10 text-purple-500", pendente: "bg-amber-500/10 text-amber-500", aceita: "bg-[#00A868]/10 text-[#00A868]", recusada: "bg-red-500/10 text-red-500", analise: "bg-blue-500/10 text-blue-500", proposta_retencao: "bg-indigo-500/10 text-indigo-500", aplicada: "bg-[#00A868]/10 text-[#00A868]" };
                         return (
                             <div key={neg.id} className={`bg-card border rounded-xl p-4 ${i === 0 ? "border-[#00A868]/20" : "border-border"}`}>
                                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
