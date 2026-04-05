@@ -194,6 +194,10 @@ export default function TarefasPage() {
     };
 
     // ═══ List column helpers ═══
+    const moveTaskToList = async (taskId: string, targetListId: string) => {
+        try { await fetch(`/api/tasks/item/${taskId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listId: targetListId }) }); load(); } catch { /* */ }
+    };
+
     const makeListColumnProps = (list: { id: string; name: string; tasks: TaskData[] }, isSpecial = false, allowListActions = false, onOpenAdd?: () => void) => ({
         list: dateFilter === "all" ? list : { ...list, tasks: list.tasks.filter(t => dateFilteredTasks.some(dt => dt.id === t.id)) },
         users,
@@ -205,6 +209,7 @@ export default function TarefasPage() {
         onAssign: (id: string, a: string | null) => updateTask(id, { assigneeId: a }),
         onOpenDetail: setDetailTask,
         isSpecialView: isSpecial,
+        onMoveToList: isSpecial ? undefined : moveTaskToList,
         ...(allowListActions ? {
             onDeleteList: lists.length > 1 ? () => deleteList(list.id, list.name) : undefined,
             onRenameList: (newName: string) => renameList(list.id, newName),

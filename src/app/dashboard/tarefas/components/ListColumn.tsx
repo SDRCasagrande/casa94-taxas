@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { TaskData, UserOption, PRIORITY_MAP, friendlyDate, isOverdue } from "./types";
 
-export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onSchedule, onAssign, onOpenDetail, onDeleteList, onRenameList, onClearCompleted, isSpecialView, onOpenAddTask }: {
+export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onSchedule, onAssign, onOpenDetail, onDeleteList, onRenameList, onClearCompleted, isSpecialView, onOpenAddTask, onMoveToList }: {
     list: { id: string; name: string; tasks: TaskData[] };
     users: UserOption[];
     onAdd: (title: string, date?: string, time?: string, assigneeId?: string, priority?: string, description?: string) => void;
@@ -23,11 +23,13 @@ export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onS
     onClearCompleted?: () => void;
     isSpecialView?: boolean;
     onOpenAddTask?: () => void;
+    onMoveToList?: (taskId: string, targetListId: string) => void;
 }) {
     const [showMenu, setShowMenu] = useState(false);
     const [showCompleted, setShowCompleted] = useState(false);
     const [renaming, setRenaming] = useState(false);
     const [renameName, setRenameName] = useState(list.name);
+    const [dragOver, setDragOver] = useState(false);
 
     const pending = list.tasks.filter(t => !t.completed).sort((a, b) => {
         if (a.starred !== b.starred) return Number(b.starred) - Number(a.starred);
@@ -40,7 +42,17 @@ export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onS
     const completed = list.tasks.filter(t => t.completed);
 
     return (
-        <div className="w-full lg:w-72 shrink-0 card-elevated flex flex-col max-h-[70vh] lg:max-h-[calc(100vh-180px)]">
+        <div className={`w-full lg:w-72 shrink-0 card-elevated flex flex-col max-h-[70vh] lg:max-h-[calc(100vh-180px)] transition-all ${dragOver ? "ring-2 ring-[#00A868]/40 bg-[#00A868]/5" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+                e.preventDefault(); setDragOver(false);
+                const taskId = e.dataTransfer.getData("text/taskId");
+                const sourceListId = e.dataTransfer.getData("text/sourceListId");
+                if (taskId && sourceListId && sourceListId !== list.id && onMoveToList) {
+                    onMoveToList(taskId, list.id);
+                }
+            }}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
                 {renaming ? (
@@ -102,7 +114,10 @@ export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onS
                     const subtaskTotal = task.subtasks?.length || 0;
                     const subtaskDone = task.subtasks?.filter(s => s.completed).length || 0;
                     return (
-                    <div key={task.id} className={`group flex items-start gap-2 px-2 py-2.5 rounded-xl hover:bg-muted/40 transition-colors relative cursor-pointer active:bg-muted/60 ${overdue ? "ring-1 ring-red-500/30 animate-pulse-subtle" : ""}`}
+                    <div key={task.id}
+                        draggable={!isSpecialView}
+                        onDragStart={(e) => { e.dataTransfer.setData("text/taskId", task.id); e.dataTransfer.setData("text/sourceListId", list.id); e.dataTransfer.effectAllowed = "move"; }}
+                        className={`group flex items-start gap-2 px-2 py-2.5 rounded-xl hover:bg-muted/40 transition-colors relative cursor-pointer active:bg-muted/60 ${overdue ? "ring-1 ring-red-500/30 animate-pulse-subtle" : ""} ${!isSpecialView ? "cursor-grab active:cursor-grabbing" : ""}`}
                         onClick={() => onOpenDetail(task)}>
                         <button onClick={(e) => { e.stopPropagation(); onToggle(task.id); }} className="shrink-0 mt-0.5 text-muted-foreground hover:text-[#00A868] touch-target p-0.5"><Circle className="w-[18px] h-[18px]" /></button>
                         <div className="flex-1 min-w-0">
