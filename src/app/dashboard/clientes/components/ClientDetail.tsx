@@ -740,15 +740,20 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                                     </div>
                                 )}
                             </div>
-                            <div className={`rounded-xl p-3 transition-all ${negCreateTask ? "bg-blue-500/5 border border-blue-500/20" : "bg-secondary/30 border border-border/30"}`}>
+                            {(() => {
+                                const skipTask = ["aplicada", "recusada", "aprovado", "fechado"].includes(negStatus);
+                                return (
+                            <div className={`rounded-xl p-3 transition-all ${skipTask ? "bg-secondary/20 border border-border/20 opacity-60" : negCreateTask ? "bg-blue-500/5 border border-blue-500/20" : "bg-secondary/30 border border-border/30"}`}>
                                 <label className="flex items-center gap-2.5 cursor-pointer">
-                                    <div className={`relative w-10 h-5 rounded-full transition-colors ${negCreateTask ? 'bg-blue-500' : 'bg-secondary border border-border'}`}
-                                        onClick={() => setNegCreateTask(!negCreateTask)}>
-                                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${negCreateTask ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                    <div className={`relative w-10 h-5 rounded-full transition-colors ${skipTask ? 'bg-secondary border border-border cursor-not-allowed' : negCreateTask ? 'bg-blue-500' : 'bg-secondary border border-border'}`}
+                                        onClick={() => !skipTask && setNegCreateTask(!negCreateTask)}>
+                                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${!skipTask && negCreateTask ? 'translate-x-5' : 'translate-x-0.5'}`} />
                                     </div>
                                     <div>
                                         <span className="text-xs font-bold text-foreground">📋 Criar Tarefa de Acompanhamento</span>
-                                        <p className="text-[9px] text-muted-foreground/60">Gera tarefa automática para validar/acompanhar</p>
+                                        <p className="text-[9px] text-muted-foreground/60">
+                                            {skipTask ? "Status final — não gera tarefa automática" : "Gera tarefa automática para validar/acompanhar"}
+                                        </p>
                                     </div>
                                 </label>
                                 {negCreateTask && (
@@ -762,6 +767,8 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                                     </div>
                                 )}
                             </div>
+                            );
+                            })()}
                             <button onClick={handleAddNeg} disabled={negSaving}
                                 className="w-full py-3 bg-[#00A868] text-white rounded-xl text-sm font-bold hover:bg-[#008f58] disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
                                 {negSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Salvar Renegociação

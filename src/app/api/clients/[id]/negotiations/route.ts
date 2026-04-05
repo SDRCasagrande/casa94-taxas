@@ -34,8 +34,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             include: { assignee: { select: { id: true, name: true, email: true } } },
         });
 
-        // Auto-create task if requested
-        if (body.createTask) {
+        // Auto-create task only for statuses that need follow-up (NOT for 'aplicada' or 'recusada')
+        const skipTaskStatuses = ["aplicada", "recusada", "aprovado", "fechado"];
+        if (body.createTask && !skipTaskStatuses.includes(status)) {
             const assigneeId = body.taskAssigneeId || body.assigneeId || null;
             const statusLabels: Record<string, string> = {
                 prospeccao: "Prospecção", proposta_enviada: "Proposta Enviada",
