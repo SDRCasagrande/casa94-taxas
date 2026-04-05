@@ -24,6 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 // POST — create or update a month record (upsert by clientId + month)
+// Rates are auto-pulled from last negotiation when not provided
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getSession();
@@ -34,9 +35,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         if (!client || client.userId !== session.userId) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         const body = await request.json();
-        const { month, tpvDebit, tpvCredit, tpvPix, rateDebit, rateCredit, ratePix, rateRav, notes } = body;
+        const { month, tpvDebit, tpvCredit, tpvPix, rateDebit, rateCredit, ratePix, rateRav, brandBreakdown, notes } = body;
 
         if (!month) return NextResponse.json({ error: "Month is required (YYYY-MM)" }, { status: 400 });
+
+        // Auto-pull rates from the most recent negotiation if not provided
+        let effectiveRateDebit = rateDebit;
+        let effectiveRateCredit = rateCredit;
+        let effectiveRatePix = ratePix;
+        let effectiveRateRav = rateRav;
+
+        if (effectiveRateDebit == null || effectiveRateCredit == null || effectiveRatePix == null) {
+            const lastNeg = await prisma.negotiation.findFirst({
+                where: { clientId: id },
+                orderBy: { createdAt: "desc" },
+            });
+            if (lastNeg) {
+                const rates = lastNeg.rates as any;
+                if (effectiveRateDebit == null) effectiveRateDebit = rates?.debit || 0;
+                if (effectiveRateCredit == null) effectiveRateCredit = rates?.credit1x || 0;
+                if (effectiveRatePix == null) effectiveRatePix = rates?.pix || 0;
+                if (effectiveRateRav == null) effectiveRateRav = rates?.rav || 0;
+            }
+        }
 
         const totalTpv = (tpvDebit || 0) + (tpvCredit || 0) + (tpvPix || 0);
 
@@ -48,27 +69,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 tpvDebit: tpvDebit || 0,
                 tpvCredit: tpvCredit || 0,
                 tpvPix: tpvPix || 0,
-                rateDebit: rateDebit || 0,
-                rateCredit: rateCredit || 0,
-                ratePix: ratePix || 0,
-                // @ts-ignore
-                rateRav: rateRav || 0,
+                rateDebit: effectiveRateDebit || 0,
+                rateCredit: effectiveRateCredit || 0,
+                ratePix: effectiveRatePix || 0,
+                rateRav: effectiveRateRav || 0,
+                brandBreakdown: brandBreakdown || undefined,
                 notes: notes || "",
             },
             update: {
                 tpvDebit: tpvDebit ?? undefined,
                 tpvCredit: tpvCredit ?? undefined,
                 tpvPix: tpvPix ?? undefined,
-                rateDebit: rateDebit ?? undefined,
-                rateCredit: rateCredit ?? undefined,
-                ratePix: ratePix ?? undefined,
-                // @ts-ignore
-                rateRav: rateRav ?? undefined,
+                rateDebit: effectiveRateDebit ?? undefined,
+                rateCredit: effectiveRateCredit ?? undefined,
+                ratePix: effectiveRatePix ?? undefined,
+                rateRav: effectiveRateRav ?? undefined,
+                brandBreakdown: brandBreakdown !== undefined ? brandBreakdown : undefined,
                 notes: notes !== undefined ? notes : undefined,
             },
         });
 
-        // @ts-ignore
         const clientData: any = client;
         const isBelowTarget = clientData.targetTpv && clientData.targetTpv > 0 && totalTpv < clientData.targetTpv;
 

@@ -326,6 +326,7 @@ model ClientMonth {
   rateCredit Float    @default(0)
   ratePix    Float    @default(0)
   rateRav    Float    @default(0)
+  brandBreakdown Json?              // { debit: { master: 30000, visa: 10000, elo: 10000 }, credit: { ... }, pix: { ... } }
   notes      String   @default("")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
