@@ -43,7 +43,6 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
     const emptyBrands = () => Object.fromEntries(BRANDS.map(b => [b, ""]));
     const [brandDebit, setBrandDebit] = useState<Record<string, string>>(emptyBrands());
     const [brandCredit, setBrandCredit] = useState<Record<string, string>>(emptyBrands());
-    const [brandPix, setBrandPix] = useState<Record<string, string>>(emptyBrands());
 
     // Neg form
     const [showNewNeg, setShowNewNeg] = useState(false);
@@ -299,7 +298,6 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                     const hasAny = (obj: Record<string, string>) => Object.values(obj).some(v => parseFloat(v) > 0);
                     if (hasAny(brandDebit)) bd.debit = Object.fromEntries(Object.entries(brandDebit).filter(([, v]) => parseFloat(v) > 0).map(([k, v]) => [k, parseFloat(v)]));
                     if (hasAny(brandCredit)) bd.credit = Object.fromEntries(Object.entries(brandCredit).filter(([, v]) => parseFloat(v) > 0).map(([k, v]) => [k, parseFloat(v)]));
-                    if (hasAny(brandPix)) bd.pix = Object.fromEntries(Object.entries(brandPix).filter(([, v]) => parseFloat(v) > 0).map(([k, v]) => [k, parseFloat(v)]));
                     return Object.keys(bd).length > 0 ? bd : undefined;
                 };
 
@@ -324,7 +322,7 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                             }
                         }
                         loadClients(); setTpvTotal(""); setTpvD(""); setTpvC(""); setTpvP("");
-                        setBrandDebit(emptyBrands()); setBrandCredit(emptyBrands()); setBrandPix(emptyBrands());
+                        setBrandDebit(emptyBrands()); setBrandCredit(emptyBrands());
                         setShowTpvForm(false); setShowTpvAdvanced(false);
                     } catch { /* */ } finally { setTpvSaving(false); }
                 };
@@ -475,7 +473,6 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                                     {([
                                         { label: "Débito", state: brandDebit, setter: setBrandDebit, total: effectiveD },
                                         { label: "Crédito", state: brandCredit, setter: setBrandCredit, total: effectiveC },
-                                        { label: "PIX", state: brandPix, setter: setBrandPix, total: effectiveP },
                                     ]).map(mod => {
                                         const brandSum = Object.values(mod.state).reduce((s, v) => s + (parseFloat(v) || 0), 0);
                                         const remaining = mod.total - brandSum;
