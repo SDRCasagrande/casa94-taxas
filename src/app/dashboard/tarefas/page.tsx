@@ -26,6 +26,7 @@ export default function TarefasPage() {
     const [view, setView] = useState<"board" | "calendar" | "kanban">("board");
     const [showNewList, setShowNewList] = useState(false);
     const [newListName, setNewListName] = useState("");
+    const [newListShared, setNewListShared] = useState(false);
     const [calMonth, setCalMonth] = useState(new Date().getMonth());
     const [calYear, setCalYear] = useState(new Date().getFullYear());
     const [primaryTab, setPrimaryTab] = useState<"minha_carteira" | "franquia" | "avulsos" | "tudo">("tudo");
@@ -134,8 +135,8 @@ export default function TarefasPage() {
     const createList = async () => {
         if (!newListName.trim()) return;
         try {
-            const res = await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newListName.trim() }) });
-            if (res.ok) { setNewListName(""); setShowNewList(false); load(); }
+            const res = await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newListName.trim(), shared: newListShared }) });
+            if (res.ok) { setNewListName(""); setNewListShared(false); setShowNewList(false); load(); }
         } catch { /* */ }
     };
 
@@ -342,15 +343,33 @@ export default function TarefasPage() {
                         </div>
                     )}
 
-                    <div className="mt-4 mb-1"><span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 px-3">Listas</span></div>
-                    {lists.map(l => (
-                        <button key={l.id} onClick={() => setSidebarFilter(sidebarFilter === `list_${l.id}` ? "all" : `list_${l.id}`)}
-                            className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${sidebarFilter === `list_${l.id}` ? "bg-[#00A868]/15 text-[#00A868]" : "text-muted-foreground hover:bg-muted"}`}>
-                            <CheckSquare className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate flex-1 text-left">{l.name}</span>
-                            <span className="text-[10px] opacity-50">{l.tasks.filter(t => !t.completed).length}</span>
-                        </button>
-                    ))}
+                    {/* ═══ MINHAS LISTAS ═══ */}
+                    {(() => {
+                        const myLists = lists.filter(l => !l.shared);
+                        const teamLists = lists.filter(l => l.shared);
+                        return (<>
+                            <div className="mt-4 mb-1"><span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 px-3">Minhas Listas</span></div>
+                            {myLists.map(l => (
+                                <button key={l.id} onClick={() => setSidebarFilter(sidebarFilter === `list_${l.id}` ? "all" : `list_${l.id}`)}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${sidebarFilter === `list_${l.id}` ? "bg-[#00A868]/15 text-[#00A868]" : "text-muted-foreground hover:bg-muted"}`}>
+                                    <CheckSquare className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate flex-1 text-left">{l.name}</span>
+                                    <span className="text-[10px] opacity-50">{l.tasks.filter(t => !t.completed).length}</span>
+                                </button>
+                            ))}
+                            {teamLists.length > 0 && (<>
+                                <div className="mt-3 mb-1"><span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 px-3">Listas da Equipe</span></div>
+                                {teamLists.map(l => (
+                                    <button key={l.id} onClick={() => setSidebarFilter(sidebarFilter === `list_${l.id}` ? "all" : `list_${l.id}`)}
+                                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${sidebarFilter === `list_${l.id}` ? "bg-blue-500/15 text-blue-500" : "text-muted-foreground hover:bg-muted"}`}>
+                                        <Users className="w-3.5 h-3.5 shrink-0 text-blue-500/60" />
+                                        <span className="truncate flex-1 text-left">{l.name}</span>
+                                        <span className="text-[10px] opacity-50">{l.tasks.filter(t => !t.completed).length}</span>
+                                    </button>
+                                ))}
+                            </>)}
+                        </>);
+                    })()}
                     <button onClick={() => setShowNewList(true)} className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"><Plus className="w-3.5 h-3.5" /> Criar nova lista</button>
 
                     {showNewList && (
@@ -361,9 +380,17 @@ export default function TarefasPage() {
                                 <input value={newListName} onChange={e => setNewListName(e.target.value)}
                                     onKeyDown={e => { if (e.key === "Enter" && newListName.trim()) createList(); if (e.key === "Escape") setShowNewList(false); }}
                                     autoFocus placeholder="Digite o nome"
-                                    className="w-full text-sm text-foreground bg-transparent border-b-2 border-border focus:border-[#00A868] focus:outline-none pb-2 placeholder-muted-foreground/50 transition-colors mb-6" />
+                                    className="w-full text-sm text-foreground bg-transparent border-b-2 border-border focus:border-[#00A868] focus:outline-none pb-2 placeholder-muted-foreground/50 transition-colors mb-4" />
+                                <label className="flex items-center gap-2 mb-5 cursor-pointer group">
+                                    <input type="checkbox" checked={newListShared} onChange={e => setNewListShared(e.target.checked)}
+                                        className="w-4 h-4 rounded border-border text-[#00A868] focus:ring-[#00A868]" />
+                                    <div>
+                                        <span className="text-sm font-medium text-foreground group-hover:text-[#00A868] transition-colors">Compartilhar com equipe</span>
+                                        <p className="text-[10px] text-muted-foreground">Todos da organização poderão ver e adicionar tarefas</p>
+                                    </div>
+                                </label>
                                 <div className="flex items-center justify-end gap-3">
-                                    <button onClick={() => { setShowNewList(false); setNewListName(""); }} className="px-4 py-2 text-sm font-medium text-[#00A868] hover:bg-muted rounded-xl transition-colors">Cancelar</button>
+                                    <button onClick={() => { setShowNewList(false); setNewListName(""); setNewListShared(false); }} className="px-4 py-2 text-sm font-medium text-[#00A868] hover:bg-muted rounded-xl transition-colors">Cancelar</button>
                                     <button onClick={createList} disabled={!newListName.trim()} className="px-4 py-2 text-sm font-medium text-[#00A868] hover:bg-muted rounded-xl transition-colors disabled:opacity-30">Concluir</button>
                                 </div>
                             </div>

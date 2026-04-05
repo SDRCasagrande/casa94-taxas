@@ -161,6 +161,7 @@ model TaskList {
   name      String
   userId    String
   orgId     String?
+  shared    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

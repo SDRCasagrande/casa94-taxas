@@ -8,23 +8,28 @@ export async function GET() {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        // Show task lists within the org (team visibility)
-        const listWhere: any = { userId: session.userId };
-        if (session.orgId) listWhere.orgId = session.orgId;
+        // Show task lists: personal lists + shared org lists
+        const listConditions: any[] = [{ userId: session.userId }];
+        if (session.orgId) {
+            listConditions.push({ orgId: session.orgId, shared: true });
+        }
+
+        const taskInclude = {
+            tasks: {
+                include: {
+                    assignee: { select: { id: true, name: true, email: true } },
+                    createdBy: { select: { id: true, name: true } },
+                    client: { select: { id: true, name: true, userId: true } },
+                    subtasks: { orderBy: { order: 'asc' as const } },
+                },
+                orderBy: { createdAt: 'asc' as const },
+            },
+            user: { select: { id: true, name: true } },
+        };
 
         let lists = await prisma.taskList.findMany({
-            where: listWhere,
-            include: {
-                tasks: {
-                    include: {
-                        assignee: { select: { id: true, name: true, email: true } },
-                        createdBy: { select: { id: true, name: true } },
-                        client: { select: { id: true, name: true, userId: true } },
-                        subtasks: { orderBy: { order: 'asc' } },
-                    },
-                    orderBy: { createdAt: 'asc' },
-                },
-            },
+            where: { OR: listConditions },
+            include: taskInclude,
             orderBy: { createdAt: 'asc' },
         });
 
@@ -32,7 +37,7 @@ export async function GET() {
         if (lists.length === 0) {
             const newList = await prisma.taskList.create({
                 data: { name: 'Minhas Tarefas', userId: session.userId, orgId: session.orgId || null },
-                include: { tasks: { include: { assignee: { select: { id: true, name: true, email: true } }, createdBy: { select: { id: true, name: true } }, client: { select: { id: true, name: true, userId: true } }, subtasks: { orderBy: { order: 'asc' } } } } },
+                include: taskInclude,
             });
             lists = [newList];
         }
@@ -104,11 +109,16 @@ export async function POST(request: Request) {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { name } = await request.json();
+        const { name, shared } = await request.json();
         if (!name?.trim()) return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
 
         const list = await prisma.taskList.create({
-            data: { name: name.trim(), userId: session.userId, orgId: session.orgId || null },
+            data: {
+                name: name.trim(),
+                userId: session.userId,
+                orgId: session.orgId || null,
+                shared: shared === true,
+            },
             include: { tasks: true },
         });
 

@@ -15,7 +15,7 @@ export interface TaskData {
     subtasks?: SubTask[];
     createdAt: string;
 }
-export interface TaskListData { id: string; name: string; tasks: TaskData[] }
+export interface TaskListData { id: string; name: string; shared: boolean; userId: string; user?: { id: string; name: string }; tasks: TaskData[] }
 export interface TaskComment { id: string; userId: string; userName: string; text: string; createdAt: string }
 
 export function today() { return new Date().toISOString().split("T")[0]; }
