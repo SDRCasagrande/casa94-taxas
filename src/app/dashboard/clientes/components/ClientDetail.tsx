@@ -377,6 +377,7 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                 const rateD = lastNeg?.rates?.debit || 0;
                 const rateC = lastNeg?.rates?.credit1x || 0;
                 const rateP = lastNeg?.rates?.pix || 0;
+                const hasRates = rateD > 0 || rateC > 0 || rateP > 0;
                 const previewReady = effectiveTotal > 0;
                 const previewVol = { tpvDebit: effectiveD, tpvCredit: effectiveC, tpvPix: effectiveP, rateDebit: rateD, rateCredit: rateC, ratePix: rateP } as MonthVolume;
                 const preview = previewReady ? calcCommission(previewVol) : null;
@@ -494,13 +495,28 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                             ))}
                         </div>
 
-                        {/* Rates Indicator */}
-                        {lastNeg ? (
-                            <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3 text-[#00A868]" /> Taxas vigentes aplicadas automaticamente
-                            </p>
+                        {/* Rates Indicator — show exactly what's being used */}
+                        {lastNeg && hasRates ? (
+                            <div className="bg-[#00A868]/5 border border-[#00A868]/10 rounded-xl p-3 space-y-1.5">
+                                <p className="text-[10px] text-[#00A868] font-bold flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" /> Taxas vigentes da última renegociação:
+                                </p>
+                                <div className="flex items-center gap-3 text-[10px]">
+                                    <span className="text-foreground font-semibold">Déb: <span className="text-blue-500">{formatPercent(rateD)}</span></span>
+                                    <span className="text-foreground font-semibold">Créd: <span className="text-purple-500">{formatPercent(rateC)}</span></span>
+                                    <span className="text-foreground font-semibold">PIX: <span className="text-cyan-500">{formatPercent(rateP)}</span></span>
+                                </div>
+                                <p className="text-[9px] text-muted-foreground/60">Receita = TPV × Taxa → 30% Franquia → 10% Agente</p>
+                            </div>
+                        ) : lastNeg && !hasRates ? (
+                            <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3">
+                                <p className="text-[10px] text-amber-500 flex items-center gap-1">⚠️ A última renegociação não tem taxas preenchidas (Déb/Créd/PIX estão 0%). A comissão ficará R$0.</p>
+                                <p className="text-[9px] text-muted-foreground/60 mt-1">Vá na aba Negociações e edite a renegociação para preencher as taxas.</p>
+                            </div>
                         ) : (
-                            <p className="text-[10px] text-amber-500 flex items-center gap-1">⚠️ Sem renegociação cadastrada — taxas zeradas.</p>
+                            <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3">
+                                <p className="text-[10px] text-red-500 flex items-center gap-1">❌ Sem renegociação cadastrada — taxas zeradas. Cadastre uma renegociação primeiro.</p>
+                            </div>
                         )}
 
                         {/* Advanced Per-Brand */}
