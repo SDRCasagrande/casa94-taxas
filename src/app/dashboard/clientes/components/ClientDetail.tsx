@@ -145,14 +145,16 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
     return (
         <div className="max-w-4xl mx-auto space-y-5 relative">
             {/* Header */}
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3">
-                    <button onClick={onBack} className="p-2 rounded-xl hover:bg-muted touch-target"><ChevronLeft className="w-5 h-5" /></button>
-                    <div className="w-12 h-12 rounded-2xl bg-[#00A868]/10 border border-[#00A868]/10 flex items-center justify-center text-lg font-bold text-[#00A868]">{sel.name.charAt(0)}</div>
-                    <div>
-                        <h1 className="text-lg font-bold flex items-center gap-2 flex-wrap">{sel.name} <StatusBadge s={sel.status} />
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${sel.brand === 'TON' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-green-600/10 text-green-600 border-green-600/20'}`}>{sel.brand === 'TON' ? 'TON' : 'STONE'}</span>
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00A868]/10 text-[#00A868] border border-blue-500/20">Safra {sel.safra}</span>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="flex items-start md:items-center gap-3 min-w-0">
+                    <button onClick={onBack} className="p-2 rounded-xl hover:bg-muted touch-target shrink-0 mt-1 md:mt-0"><ChevronLeft className="w-5 h-5" /></button>
+                    <div className="w-12 h-12 rounded-2xl bg-[#00A868]/10 border border-[#00A868]/10 flex items-center justify-center text-lg font-bold text-[#00A868] shrink-0 mt-1 md:mt-0">{sel.name.charAt(0)}</div>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-lg font-bold flex items-center gap-2 flex-wrap">
+                            <span className="truncate">{sel.name}</span> 
+                            <StatusBadge s={sel.status} />
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border ${sel.brand === 'TON' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-green-600/10 text-green-600 border-green-600/20'}`}>{sel.brand === 'TON' ? 'TON' : 'STONE'}</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#00A868]/10 text-[#00A868] border border-blue-500/20">Safra {sel.safra}</span>
                         </h1>
                         <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
                             {sel.stoneCode && <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{sel.stoneCode}</span>}

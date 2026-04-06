@@ -111,27 +111,27 @@ export default function ClientesPage() {
     /* ═══ GRID VIEW ═══ */
     return (
         <div className="space-y-5">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#00A868] flex items-center justify-center text-white shadow-lg shadow-[#00A868]/20"><Users className="w-4 h-4" /></div>
-                    <div>
-                        <h1 className="text-lg font-bold">Carteira de Clientes</h1>
-                        <p className="text-xs text-muted-foreground">{totalPortfolio} ativos · TPV mês: {fmtMoney(monthSummary.tpv)} · Comissão: {fmtMoney(monthSummary.agent)}</p>
+                    <div className="shrink-0 w-9 h-9 rounded-xl bg-[#00A868] flex items-center justify-center text-white shadow-lg shadow-[#00A868]/20"><Users className="w-4 h-4" /></div>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-lg font-bold truncate">Carteira de Clientes</h1>
+                        <p className="text-xs text-muted-foreground truncate">{totalPortfolio} ativos · TPV mês: {fmtMoney(monthSummary.tpv)}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <button onClick={() => {
                         const m = currentMonth();
                         const userName = teamUsers.find(x => true)?.name || "Sistema"; // Or any specific logic if you had user session injected
                         generateExecutiveReportPDF(clients, m, userName);
-                    }} className="flex items-center gap-2 px-3 py-2.5 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5 rounded-xl text-sm font-medium transition-all touch-target" title="Relatório Executivo PDF">
+                    }} className="flex items-center gap-2 px-3 py-2 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5 rounded-xl text-sm font-medium transition-all touch-target shrink-0" title="Relatório Executivo PDF">
                         <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
                     </button>
-                    <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-3 py-2.5 border border-border text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl text-sm font-medium transition-all touch-target">
+                    <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-3 py-2 border border-border text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl text-sm font-medium transition-all touch-target shrink-0">
                         <FileSpreadsheet className="w-4 h-4" /> <span className="hidden sm:inline">CSV</span>
                     </button>
-                    <button onClick={() => setView("new")} className="flex items-center gap-2 px-4 py-2.5 bg-[#00A868] hover:bg-[#008f58] text-white rounded-xl text-sm font-medium shadow-lg shadow-[#00A868]/20 active:scale-[0.98] transition-all touch-target">
-                        <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Novo Cliente</span>
+                    <button onClick={() => setView("new")} className="flex items-center gap-2 px-4 py-2 bg-[#00A868] hover:bg-[#008f58] text-white rounded-xl text-sm font-medium shadow-lg shadow-[#00A868]/20 active:scale-[0.98] transition-all touch-target shrink-0">
+                        <Plus className="w-4 h-4" /> <span>Novo Cliente</span>
                     </button>
                 </div>
             </div>
@@ -157,30 +157,33 @@ export default function ClientesPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="relative flex-1"><Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome, CNPJ ou Stone Code..."
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
-                <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5 overflow-x-auto">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]"><Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome ou CNPJ..."
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:border-[#00A868]/50" /></div>
+                
+                <div className="flex gap-2 flex-wrap items-center">
+                    <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5 overflow-x-auto scrollbar-hide">
                     {([["all", "Todos"], ["ativo", "Ativos"], ["cancelado", "Cancelados"]] as const).map(([key, lbl]) => (
                         <button key={key} onClick={() => setFilter(key)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${filter === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{lbl}</button>
                     ))}
+                    </div>
+                    <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5 overflow-x-auto scrollbar-hide">
+                        <button onClick={() => setBrandFilter("all")} className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${brandFilter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>🏢 Todos</button>
+                        {[...new Set(clients.map(c => c.brand).filter(Boolean))].sort().map(b => (
+                            <button key={b} onClick={() => setBrandFilter(b)} className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${brandFilter === b ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
+                                {b === "STONE" ? "🟢" : b === "TON" ? "🔵" : "🏷️"} {b}
+                            </button>
+                        ))}
+                    </div>
+                    <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+                        className="px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs font-semibold text-muted-foreground focus:text-foreground transition-all cursor-pointer">
+                        <option value="score">⭐ Score</option>
+                        <option value="name">🔤 Nome</option>
+                        <option value="tpv">💰 TPV</option>
+                        <option value="safra">🌱 Safra</option>
+                    </select>
                 </div>
-                <div className="flex gap-1 bg-secondary/50 rounded-xl p-0.5 flex-wrap overflow-x-auto">
-                    <button onClick={() => setBrandFilter("all")} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${brandFilter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>🏢 Todos</button>
-                    {[...new Set(clients.map(c => c.brand).filter(Boolean))].sort().map(b => (
-                        <button key={b} onClick={() => setBrandFilter(b)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${brandFilter === b ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
-                            {b === "STONE" ? "🟢" : b === "TON" ? "🔵" : "🏷️"} {b}
-                        </button>
-                    ))}
-                </div>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-                    className="px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs font-semibold text-muted-foreground focus:text-foreground transition-all cursor-pointer">
-                    <option value="score">⭐ Score</option>
-                    <option value="name">🔤 Nome</option>
-                    <option value="tpv">💰 TPV</option>
-                    <option value="safra">🌱 Safra</option>
-                </select>
             </div>
 
             {/* Client cards */}
@@ -204,15 +207,17 @@ export default function ClientesPage() {
                                         <span className="text-sm font-bold text-[#00A868]">{c.name.charAt(0)}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate flex items-center justify-between">
-                                            {c.name}
+                                        <div className="flex items-center justify-between gap-2 mb-1 overflow-hidden">
+                                            <p className="text-sm font-semibold truncate text-foreground flex-1">
+                                                {c.name}
+                                            </p>
                                             {c.user && (
-                                                <span className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 border border-border" title={`Carteira de: ${c.user.name}`}>
-                                                    <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold text-white uppercase">{c.user.name.charAt(0)}</div>
-                                                    <span className="text-[10px] text-muted-foreground font-medium hidden sm:inline-block max-w-[80px] truncate">{c.user.name.split(' ')[0]}</span>
+                                                <span className="shrink-0 flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-secondary/80 border border-border shadow-sm" title={`Carteira de: ${c.user.name}`}>
+                                                    <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold text-white uppercase shrink-0">{c.user.name.charAt(0)}</div>
+                                                    <span className="text-[9px] text-muted-foreground font-semibold hidden md:inline-block max-w-[65px] truncate">{c.user.name.split(' ')[0]}</span>
                                                 </span>
                                             )}
-                                        </p>
+                                        </div>
                                         <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
                                             {c.stoneCode && <span>SC: {c.stoneCode}</span>}
                                             {c.segment && <span>{c.segment}</span>}
