@@ -137,9 +137,15 @@ export function ListColumn({ list, users, onAdd, onToggle, onStar, onDelete, onS
                                     </span>
                                 ) : null}
                                 {subtaskTotal > 0 && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-lg font-medium flex items-center gap-0.5 ${subtaskDone === subtaskTotal ? "bg-[#00A868]/10 text-[#00A868]" : "bg-muted text-muted-foreground"}`}>
-                                        <CheckSquare className="w-3 h-3" /> {subtaskDone}/{subtaskTotal}
-                                    </span>
+                                    <div className="w-full mt-1.5 space-y-1">
+                                        <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            <span className="flex items-center gap-1"><CheckSquare className="w-2.5 h-2.5" /> Checklist</span>
+                                            <span className={subtaskDone === subtaskTotal ? "text-[#00A868]" : ""}>{subtaskDone}/{subtaskTotal}</span>
+                                        </div>
+                                        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#00A868] rounded-full transition-all duration-300" style={{ width: `${(subtaskDone / subtaskTotal) * 100}%` }} />
+                                        </div>
+                                    </div>
                                 )}
                                 {task.description && (
                                     <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">

@@ -23,6 +23,7 @@ interface Metrics {
     totalClients: number; activeClients: number; canceledClients: number;
     totalNegotiations: number; pendingNeg: number; acceptedNeg: number; rejectedNeg: number; conversionRate: number;
     pipeline: Pipeline; pendingTasks: number; monthlyCredentialings: number; portfolio: Portfolio;
+    historicalPortfolio?: { month: string; tpvTotal: number; revenueTotal: number }[];
     avgRates: { debit: number; credit1x: number; credit2to6: number; credit7to12: number; pix: number; rav: number };
     avgTimePerStage?: Record<string, number>;
     recentClients: { id: string; name: string; stoneCode: string; cnpj: string; status?: string; negotiations: { status: string; dateNeg: string; rates: Record<string, number> }[] }[];
@@ -285,29 +286,38 @@ export default function DashboardPage() {
                         );
                     })}
                 </div>
-                {/* Funnel bar */}
+                {/* Funnel bar with fall-off */}
                 {(metrics?.totalNegotiations || 0) > 0 && (
-                    <div className="mt-4 pt-3 border-t border-border">
-                        <div className="flex items-center gap-0.5 h-6 rounded-xl overflow-hidden bg-muted">
-                            {(["prospeccao", "proposta_enviada", "aguardando_cliente", "aprovado", "recusado", "fechado"] as const).map(key => {
+                    <div className="mt-5 pt-4 border-t border-border">
+                        <div className="flex justify-between items-end gap-1 h-32 rounded-xl bg-card p-3 border border-border">
+                            {(["prospeccao", "proposta_enviada", "aguardando_cliente", "aprovado", "recusado", "fechado"] as const).map((key, idx, arr) => {
                                 const count = pipeline[key] || 0;
-                                if (count === 0) return null;
-                                const pct = (count / (metrics?.totalNegotiations || 1)) * 100;
+                                const prevCount = idx > 0 ? (pipeline[arr[idx - 1]] || 0) : 0;
+                                const isDrop = key === "recusado";
+                                const heightPct = Math.max((count / Math.max(metrics!.totalNegotiations, 1)) * 100, 5);
+                                
+                                const falloff = prevCount > 0 && !isDrop ? Math.round(((prevCount - count) / prevCount) * 100) : 0;
+                                
                                 const colors: Record<string, string> = {
                                     prospeccao: "bg-slate-500", proposta_enviada: "bg-blue-500", aguardando_cliente: "bg-amber-500",
                                     aprovado: "bg-[#00A868]", recusado: "bg-red-500", fechado: "bg-purple-500",
                                 };
                                 return (
-                                    <div key={key} className={`h-full ${colors[key]} flex items-center justify-center text-[9px] font-bold text-white transition-all`}
-                                        style={{ width: `${Math.max(pct, 4)}%` }} title={`${STAGE_LABELS[key].label}: ${count}`}>
-                                        {pct >= 8 && count}
+                                    <div key={key} className="flex-1 flex flex-col justify-end group relative" title={`${STAGE_LABELS[key].label}: ${count}`}>
+                                        {idx > 0 && !isDrop && falloff > 0 && (
+                                            <div className="absolute -top-4 -left-1/2 w-full text-center text-[8px] text-muted-foreground font-bold opacity-50 group-hover:opacity-100 transition-opacity">
+                                                -{falloff}%
+                                            </div>
+                                        )}
+                                        <div className="text-center mb-1 text-[9px] font-bold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">{count}</div>
+                                        <div className={`w-full rounded-t-sm transition-all duration-500 ${colors[key]} shadow-sm`} style={{ height: `${heightPct}%` }} />
                                     </div>
                                 );
                             })}
                         </div>
-                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5 px-1">
-                            <span>Total: {metrics?.totalNegotiations}</span>
-                            <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#00A868]" /> Conversão: {(metrics?.conversionRate ?? 0).toFixed(1)}%</span>
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-2 px-1">
+                            <span className="font-bold">Total: {metrics?.totalNegotiations} Negociações</span>
+                            <span className="flex items-center gap-1 font-bold text-[#00A868]"><div className="w-1.5 h-1.5 rounded-full bg-[#00A868]" /> {(metrics?.conversionRate ?? 0).toFixed(1)}% Conv. Global</span>
                         </div>
                     </div>
                 )}
@@ -362,41 +372,47 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* Portfolio TPV Breakdown */}
-                    <div className="card-elevated p-5">
+                    {/* Portfolio TPV Historical Chart */}
+                    <div className="card-elevated p-5 flex flex-col">
                         <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center"><DollarSign className="w-3.5 h-3.5 text-indigo-500" /></div>
-                            Portfolio {portfolio.month ? `— ${fmtMonth(portfolio.month)}` : ""}
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-indigo-500" /></div>
+                            Evolução de Carteira
                         </h3>
-                        {portfolio.tpvTotal > 0 ? (
-                            <div className="space-y-3">
-                                <div className="text-center mb-3">
-                                    <p className="text-2xl font-black text-foreground">{fmtMoney(portfolio.tpvTotal)}</p>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">TPV Total</p>
-                                </div>
-                                <div className="flex h-8 rounded-xl overflow-hidden bg-muted">
-                                    <div className="bg-[#00A868] flex items-center justify-center text-[9px] font-bold text-white" style={{ width: `${Math.max((portfolio.revenueTotal / (portfolio.tpvTotal || 1)) * 100, 5)}%` }}>
-                                        Receita
+                        {metrics?.historicalPortfolio && metrics.historicalPortfolio.length > 0 ? (() => {
+                            const maxTpv = Math.max(...metrics.historicalPortfolio.map(h => h.tpvTotal || 1));
+                            return (
+                                <div className="flex-1 flex flex-col">
+                                    <div className="flex flex-1 items-end justify-between gap-2 p-3 bg-muted/20 border border-border rounded-xl">
+                                        {metrics.historicalPortfolio.map((h, i) => {
+                                            const hPct = Math.max((h.tpvTotal / maxTpv) * 100, 5);
+                                            const isCurrent = i === metrics.historicalPortfolio!.length - 1;
+                                            return (
+                                                <div key={h.month} className="flex-1 flex flex-col justify-end items-center group relative h-32">
+                                                    <div className="absolute -top-7 text-center opacity-0 group-hover:opacity-100 transition-opacity bg-popover text-popover-foreground border shadow-lg rounded px-2 py-1 text-[9px] font-bold z-10 w-max pointer-events-none">
+                                                        TPV: {fmtMoney(h.tpvTotal)}<br />
+                                                        Rec: {fmtMoney(h.revenueTotal)}
+                                                    </div>
+                                                    <div className={`w-full max-w-[40px] rounded-t-md transition-all duration-700 ${isCurrent ? "bg-indigo-500" : "bg-indigo-500/40"}`} style={{ height: `${hPct}%` }} />
+                                                    <div className="mt-2 text-[9px] font-bold text-muted-foreground uppercase">{fmtMonth(h.month).split('/')[0]}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-center mt-4">
+                                        <div className="bg-indigo-500/5 rounded-xl border border-indigo-500/10 p-2">
+                                            <p className="text-sm font-black text-indigo-500">{fmtMoney(portfolio.tpvTotal)}</p>
+                                            <p className="text-[9px] text-muted-foreground font-bold uppercase mt-0.5">TPV Mês Atual</p>
+                                        </div>
+                                        <div className="bg-[#00A868]/5 rounded-xl border border-[#00A868]/10 p-2">
+                                            <p className="text-sm font-black text-[#00A868]">{fmtMoney(portfolio.revenueTotal)}</p>
+                                            <p className="text-[9px] text-[#00A868] font-bold uppercase mt-0.5">Receita Atual</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div className="bg-indigo-500/5 rounded-lg p-2">
-                                        <p className="text-xs font-black text-indigo-500">{fmtMoney(portfolio.revenueTotal)}</p>
-                                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Receita</p>
-                                    </div>
-                                    <div className="bg-purple-500/5 rounded-lg p-2">
-                                        <p className="text-xs font-black text-purple-500">{fmtMoney(portfolio.agentCommission)}</p>
-                                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Comissão</p>
-                                    </div>
-                                    <div className="bg-[#00A868]/5 rounded-lg p-2">
-                                        <p className="text-xs font-black text-[#00A868]">{((portfolio.agentCommission / (portfolio.tpvTotal || 1)) * 100).toFixed(3)}%</p>
-                                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Margem</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-6 text-sm text-muted-foreground">
-                                <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-30" /> Nenhum TPV registrado
+                            );
+                        })() : (
+                            <div className="flex-1 flex items-center justify-center text-center py-6 text-sm text-muted-foreground">
+                                <div><DollarSign className="w-8 h-8 mx-auto mb-2 opacity-30" /> Nenhum TPV registrado</div>
                             </div>
                         )}
                     </div>

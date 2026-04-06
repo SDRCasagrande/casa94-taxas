@@ -79,20 +79,37 @@ export async function GET() {
 
 
 
-        // TPV portfolio — current month volumes
+        // TPV portfolio — last 4 months (including current)
         const now = new Date();
-        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const months = Array.from({ length: 4 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        }).reverse(); // chronological [oldest ... current]
+        
         let tpvTotal = 0, revenueTotal = 0, agentCommission = 0;
+        const currentMonth = months[3];
+        const historicalPortfolio = months.map(m => ({ month: m, tpvTotal: 0, revenueTotal: 0, agentCommission: 0 }));
+
         try {
-            const monthVolumes = await prisma.clientMonth.findMany({
-                where: { client: clientFilter, month: currentMonth },
+            const historicalVolumes = await prisma.clientMonth.findMany({
+                where: { client: clientFilter, month: { in: months } },
             });
-            monthVolumes.forEach(v => {
+            historicalVolumes.forEach(v => {
                 const tpv = v.tpvDebit + v.tpvCredit + v.tpvPix;
                 const rev = (v.tpvDebit * v.rateDebit / 100) + (v.tpvCredit * v.rateCredit / 100) + (v.tpvPix * v.ratePix / 100);
-                tpvTotal += tpv;
-                revenueTotal += rev;
-                agentCommission += rev * 0.30 * 0.10;
+                
+                const histIdx = historicalPortfolio.findIndex(h => h.month === v.month);
+                if (histIdx !== -1) {
+                    historicalPortfolio[histIdx].tpvTotal += tpv;
+                    historicalPortfolio[histIdx].revenueTotal += rev;
+                    historicalPortfolio[histIdx].agentCommission += rev * 0.30 * 0.10;
+                }
+
+                if (v.month === currentMonth) {
+                    tpvTotal += tpv;
+                    revenueTotal += rev;
+                    agentCommission += rev * 0.30 * 0.10;
+                }
             });
         } catch { /* clientMonth table may not exist yet */ }
 
@@ -179,6 +196,7 @@ export async function GET() {
             pipeline, avgRates, recentClients, upcomingRenegotiations,
             pendingTasks, monthlyCredentialings, avgTimePerStage,
             portfolio: { tpvTotal, revenueTotal, agentCommission, month: currentMonth },
+            historicalPortfolio,
         });
 
         // Cache for 60 seconds to reduce DB load on repeated visits
