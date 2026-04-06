@@ -489,24 +489,58 @@ export function ClientDetail({ client, teamUsers, loadClients, onBack, onCancelC
                         {/* Manual Deb/Cred/PIX split with % bars */}
                         <div className="space-y-3">
                             <label className="text-xs font-medium text-muted-foreground">Detalhamento por Modalidade <span className="text-muted-foreground/50">(opcional)</span></label>
-                            {([
-                                { label: "Débito", value: tpvD, setter: setTpvD, pct: pctD, color: "bg-blue-500", rate: rateD },
-                                { label: "Créd 1x", value: tpvC, setter: setTpvC, pct: pctC, color: "bg-purple-500", rate: rateC },
-                                { label: "Créd 2-6x", value: tpvC2, setter: setTpvC2, pct: pctC2, color: "bg-indigo-500", rate: rateC2 },
-                                { label: "Créd 7-12x", value: tpvC7, setter: setTpvC7, pct: pctC7, color: "bg-violet-500", rate: rateC7 },
-                                { label: "PIX", value: tpvP, setter: setTpvP, pct: pctP, color: "bg-cyan-500", rate: rateP },
-                            ] as const).map(m => (
-                                <div key={m.label} className="flex items-center gap-3">
-                                    <label className="text-xs font-medium text-muted-foreground w-16 shrink-0">{m.label}</label>
-                                    <input type="number" value={m.value} onChange={e => m.setter(e.target.value)} placeholder="R$ 0,00"
-                                        className="w-28 px-3 py-2 rounded-lg bg-secondary border border-border text-sm focus:outline-none focus:border-blue-500/50" />
-                                    <div className="flex-1 h-5 bg-secondary rounded-full overflow-hidden relative">
-                                        <div className={`${m.color} h-full rounded-full transition-all duration-300`} style={{ width: `${Math.min(m.pct, 100)}%` }} />
-                                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{m.pct.toFixed(0)}%</span>
-                                    </div>
-                                    <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">{formatPercent(m.rate)}</span>
+                            {/* Débito */}
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs font-medium text-muted-foreground w-16 shrink-0">Débito</label>
+                                <input type="number" value={tpvD} onChange={e => setTpvD(e.target.value)} placeholder="R$ 0,00"
+                                    className="w-28 px-3 py-2 rounded-lg bg-secondary border border-border text-sm focus:outline-none focus:border-blue-500/50" />
+                                <div className="flex-1 h-5 bg-secondary rounded-full overflow-hidden relative">
+                                    <div className={`bg-blue-500 h-full rounded-full transition-all duration-300`} style={{ width: `${Math.min(pctD, 100)}%` }} />
+                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{pctD.toFixed(0)}%</span>
                                 </div>
-                            ))}
+                                <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">{formatPercent(rateD)}</span>
+                            </div>
+
+                            {/* Crédito Group (Side by side) */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {([
+                                    { label: "Créd 1x", value: tpvC, setter: setTpvC, rate: rateC },
+                                    { label: "Créd 2-6x", value: tpvC2, setter: setTpvC2, rate: rateC2 },
+                                    { label: "Créd 7-12x", value: tpvC7, setter: setTpvC7, rate: rateC7 },
+                                ] as const).map(m => (
+                                    <div key={m.label} className="bg-secondary/20 p-2 rounded-lg border border-border/30">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-medium text-muted-foreground">{m.label}</label>
+                                            <span className="text-[9px] text-muted-foreground">{formatPercent(m.rate)}</span>
+                                        </div>
+                                        <input type="number" value={m.value} onChange={e => m.setter(e.target.value)} placeholder="R$ 0,00"
+                                            className="w-full px-2 py-1.5 rounded bg-secondary border border-border text-xs focus:outline-none focus:border-purple-500/50" />
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            {/* Crédito Total Bar */}
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs font-medium text-muted-foreground w-16 shrink-0">Tot. Crédito</label>
+                                <div className="w-28 text-xs font-semibold text-right pr-2 text-muted-foreground">{fmtMoney(effectiveC + effectiveC2 + effectiveC7)}</div>
+                                <div className="flex-1 h-5 bg-secondary rounded-full overflow-hidden relative">
+                                    <div className="bg-purple-500 h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(pctC + pctC2 + pctC7, 100)}%` }} />
+                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{(pctC + pctC2 + pctC7).toFixed(0)}%</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0"></span>
+                            </div>
+
+                            {/* PIX */}
+                            <div className="flex items-center gap-3">
+                                <label className="text-xs font-medium text-muted-foreground w-16 shrink-0">PIX</label>
+                                <input type="number" value={tpvP} onChange={e => setTpvP(e.target.value)} placeholder="R$ 0,00"
+                                    className="w-28 px-3 py-2 rounded-lg bg-secondary border border-border text-sm focus:outline-none focus:border-cyan-500/50" />
+                                <div className="flex-1 h-5 bg-secondary rounded-full overflow-hidden relative">
+                                    <div className={`bg-cyan-500 h-full rounded-full transition-all duration-300`} style={{ width: `${Math.min(pctP, 100)}%` }} />
+                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{pctP.toFixed(0)}%</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground w-12 text-right shrink-0">{formatPercent(rateP)}</span>
+                            </div>
                             {rateRav > 0 && (effectiveC2 > 0 || effectiveC7 > 0) && (
                                 <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
                                     ⚡ RAV: {formatPercent(rateRav)} será aplicado sobre parcelado ({fmtMoney((effectiveC2 + effectiveC7) * rateRav / 100)} de antecipação)

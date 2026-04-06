@@ -100,7 +100,7 @@ export function shareWhatsApp(c: Client) {
         txt += `\nMÊS: ${fmtMonth(cm.month)}\n`;
         txt += `TPV Total: ${fmtMoney(comm.tpvTotal)}\n`;
         txt += `  Débito: ${fmtMoney(cm.tpvDebit)}\n`;
-        txt += `  Crédito: ${fmtMoney(cm.tpvCredit)}\n`;
+        txt += `  Crédito: ${fmtMoney(cm.tpvCredit + (cm.tpvCredit2to6 || 0) + (cm.tpvCredit7to12 || 0))}\n`;
         txt += `  PIX: ${fmtMoney(cm.tpvPix)}\n`;
         txt += `\nReceita de Taxas: ${fmtMoney(comm.totalRevenue)}\n`;
         txt += `Comissão Franquia (30%): ${fmtMoney(comm.franchise)}\n`;
